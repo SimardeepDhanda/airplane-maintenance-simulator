@@ -1,0 +1,35 @@
+# Data and artifacts (see README: Dataset setup)
+data/raw/
+data/processed/
+ml/artifacts/**/*.joblib
+ml/artifacts/**/*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+playwright-report/
+test-results/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
