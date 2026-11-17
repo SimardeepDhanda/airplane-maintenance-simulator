@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
     environment: Literal["development", "test", "production"] = "development"
     db_connect_timeout_s: int = Field(default=3, ge=1, le=30)
+    planning_buffer_cycles: int = Field(default=10, ge=0, le=200)
 
     @field_validator("database_url")
     @classmethod

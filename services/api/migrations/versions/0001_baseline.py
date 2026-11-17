@@ -1,4 +1,4 @@
-"""Baseline revision: establishes the migration chain. Domain tables arrive in Phase 2.
+"""Baseline revision: establishes the migration chain.
 
 Revision ID: 0001
 Revises:

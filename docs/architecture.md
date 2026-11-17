@@ -31,7 +31,34 @@ flowchart TB
   Invalid configuration fails at startup.
 - **Time** is stored in UTC; the UI converts to airport-local time with zone labels.
 
-## Request flow (Phase 0)
+## Data model
+
+```mermaid
+erDiagram
+  airports ||--o{ aircraft : "home base"
+  airports ||--o{ flights : "origin / destination"
+  aircraft ||--o| engines : "monitored engine"
+  aircraft ||--o{ flights : operates
+  engines ||--o{ engine_observations : "NASA cycles"
+  engine_observations ||--o{ engine_predictions : "per cycle"
+  model_versions ||--o{ engine_predictions : "produced by"
+  simulations
+```
+
+- `engine_observations` hold NASA rows verbatim (3 settings + 21 sensors as arrays).
+- `engine_predictions` are written at seed time by the trained `RulPredictor`, keyed by
+  (engine, cycle, model version), so every number in the API traces to a model version.
+- `model_versions` stores the artifact's manifest and measured metrics (JSONB); one is active.
+- `simulations` records the seed, horizon and generator version of the fictional schedule.
+- Seeding (`make seed`) deletes and rebuilds all of the above in one transaction.
+
+## Planning flags
+
+For each engine: R = predicted RUL, L = lower bound, n = scheduled legs from the simulation start.
+Margins R − n and L − n; status from L − n against the buffer (see assumptions O11). Computed per
+request from stored predictions and flights, so a different `buffer` needs no reseed.
+
+## Health check
 
 `GET /health` runs `SELECT 1`. It returns `200 {"status":"ok","database":"ok"}` or
 `503 {"status":"degraded","database":"unavailable"}` with the same schema. The web status rail polls it
