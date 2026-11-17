@@ -2,9 +2,9 @@
 -include .env
 export
 
-PY_SOURCES := services/api/app services/api/tests services/api/migrations ml optimization scripts
+PY_SOURCES := services/api/app services/api/tests services/api/migrations ml/src ml/tests optimization scripts
 
-.PHONY: help setup db db-stop migrate api web data test e2e lint format typecheck check up down
+.PHONY: help setup db db-stop migrate api web data pipeline reproduce test e2e lint format typecheck check up down
 
 help:  ## List targets
 	@grep -hE '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -32,8 +32,14 @@ web:  ## Run the web app in dev mode on :3000
 data:  ## Download and verify NASA C-MAPSS into data/raw/cmapss
 	uv run python scripts/download_data.py
 
+pipeline:  ## Train, calibrate, evaluate and save the FD001 model (needs `make data`)
+	uv run python scripts/run_pipeline.py
+
+reproduce:  ## Re-run the pipeline and compare with the committed metrics
+	uv run pytest -m dataset
+
 test:  ## Python tests (needs TEST_DATABASE_URL for DB tests)
-	uv run pytest -m "not network"
+	uv run pytest -m "not network and not dataset"
 
 e2e:  ## Build the web app and run Playwright (starts API + web)
 	pnpm build

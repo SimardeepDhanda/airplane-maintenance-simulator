@@ -2,7 +2,60 @@
 
 ## Current phase
 
-**Phase 0 – Research and scaffold: complete, awaiting approval.** Next: Phase 1 (real ML pipeline on FD001).
+**Phase 1 – Real ML pipeline: complete, awaiting approval.** Next: Phase 2 (fictional airline and fleet API).
+
+## Phase 1 – Real ML pipeline (FD001)
+
+### Completed
+
+- Loading with RUL targets: train `max_cycle − cycle`; test `RUL file + offset`, mapped line i → unit i.
+- Engine-level split (80 fit / 20 calibration, seeded); channel selection on fit engines only.
+- Causal features: value, 10-cycle rolling mean/std, drift from the engine's early-life level.
+- Baselines (constant, linear on cycle, Ridge) and HistGradientBoosting, each with capped (125) and
+  uncapped targets; grouped 5-fold CV selection; single final evaluation on the official test split.
+- Metrics: RMSE, MAE, bias, PHM08 score (published definition), per true-RUL bin, all-cycle variant.
+- Split-conformal intervals (two tails, per predicted-RUL tertile) with measured coverage and width.
+- Permutation importance on calibration engines.
+- `RulPredictor.predict(history) -> {rul_point, rul_lower, rul_upper, model_version,
+  observed_through_cycle}` and `predict_trajectory`; input validation.
+- One command (`make pipeline`) writes `model.joblib` + `manifest.json` + `metrics.json`; `LATEST` pointer.
+- Explicitly synthetic C-MAPSS-format fixture for tests/CI (`data_kind: synthetic_fixture`).
+- Docs: model card, data dictionary, assumptions M1–M5, ADR 0002, README results.
+
+### Measured results (official test, last cycle, 100 engines)
+
+Selected HistGradientBoosting (capped): RMSE 11.44, MAE 8.35, PHM08 200. Ridge baseline: RMSE 16.89.
+Intervals (nominal 90%): 90.0% coverage, 43.9 mean width; all-cycle coverage 77.5% (lower bound 96.2%).
+Full tables in `docs/model_card.md`.
+
+### Files and modules
+
+`ml/src/aerofleet_ml/{data/load.py, data/synthetic.py, features/build.py, train/{split,models}.py,
+evaluate/{metrics,conformal}.py, inference/predictor.py, pipeline.py}`, `scripts/run_pipeline.py`,
+`ml/tests/{conftest,test_load,test_features,test_split,test_metrics,test_conformal,test_pipeline,
+test_reproducibility}.py`, `ml/artifacts/fd001-hgb-3a2ffab7/{manifest,metrics}.json`, `ml/artifacts/LATEST`.
+
+### Verification (2026-11-17)
+
+| Check | Result |
+|---|---|
+| `make check` (ruff, format, eslint, prettier, mypy strict, tsc, pytest) | 55 passed (network + dataset deselected) |
+| `make pipeline` twice | identical metrics (excluding timestamp) and version id |
+| Independent recomputation of test RMSE/MAE from `RUL_FD001.txt` | matches (11.437 / 8.345) |
+| `pytest -m dataset` (re-train, compare with committed metrics) | passed |
+
+Tests cover target derivation, RUL-file mapping, split integrity and seeding, no future rows in features
+(truncation test), no cross-engine mixing, window alignment, channel selection on given rows only,
+PHM08 known values, conformal coverage on exchangeable data, interval ordering/non-negativity, bin
+adaptivity, pipeline determinism, every candidate evaluated, selection by CV only, predictor
+round-trip, trajectory = truncated-history prediction, invalid-input rejection.
+
+### Known limitations
+
+- FD001 only. Predictions saturate at 125 cycles. 20 calibration engines → noisy interval offsets.
+- Coverage is not guaranteed (temporal dependence); upper bound under-covers early-life cycles.
+- No LSTM/GRU (optional; not earned).
+- The model is not yet served by the API (Phase 2 endpoints).
 
 ## Phase 0 – Research and scaffold
 
