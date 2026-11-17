@@ -42,7 +42,7 @@ export function MaintenanceGantt({
   });
 
   return (
-    <figure aria-label="Maintenance calendar" className="relative overflow-x-auto">
+    <figure aria-label="Maintenance calendar" className="relative overflow-x-auto" tabIndex={0}>
       <div className="min-w-[720px]">
         <div className="grid grid-cols-[4.5rem_1fr] pb-1">
           <span className="text-fg-subtle text-2xs">Bay</span>

@@ -20,4 +20,5 @@ RUN uv sync --frozen --no-dev
 RUN useradd --system --uid 10001 app
 USER app
 EXPOSE 8000
-CMD ["sh", "-c", "alembic -c services/api/alembic.ini upgrade head && uvicorn --factory app.main:create_app --host 0.0.0.0 --port 8000"]
+# Hosts such as Render inject PORT; locally and in Compose it defaults to 8000.
+CMD ["sh", "-c", "alembic -c services/api/alembic.ini upgrade head && exec uvicorn --factory app.main:create_app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

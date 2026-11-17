@@ -130,6 +130,22 @@ def solve_scenario(
     return _out(session, s)
 
 
+INTERRUPTED = "Interrupted: the API restarted while this scenario was solving. Run it again."
+
+
+def fail_interrupted(factory: sessionmaker[Session]) -> int:
+    """Mark solves orphaned by a restart as failed. Solves run in-process, so at startup none can
+    still be running. Returns the number of scenarios marked."""
+    with factory() as session:
+        stuck = session.scalars(
+            select(models.Scenario).where(models.Scenario.status.in_(("queued", "running")))
+        ).all()
+        for s in stuck:
+            s.status, s.error, s.updated_at = "failed", INTERRUPTED, maintenance.now()
+        session.commit()
+        return len(stuck)
+
+
 def run_solve(factory: sessionmaker[Session], scenario_id: int) -> None:
     with factory() as session:
         s = session.get(models.Scenario, scenario_id)

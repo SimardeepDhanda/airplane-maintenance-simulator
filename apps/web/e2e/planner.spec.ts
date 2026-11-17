@@ -83,6 +83,9 @@ test.describe("scenarios", () => {
     await expect(page.getByRole("table", { name: "Job placements" })).toBeVisible();
 
     const id = new URL(page.url()).searchParams.get("id");
+    // The recent list catches up with the finished solve without a reload.
+    const recent = page.getByRole("table", { name: "Recent scenarios" });
+    await expect(recent.getByRole("row", { name: new RegExp(`^${id} `) })).toContainText("OPTIMAL");
     await page.getByRole("link", { name: "Calendar" }).last().click();
     await expect(page).toHaveURL(new RegExp(`/maintenance\\?scenario=${id}`));
     await expect(page.getByRole("radio", { name: "Optimized" })).toHaveAttribute(

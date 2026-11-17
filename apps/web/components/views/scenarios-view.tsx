@@ -94,8 +94,8 @@ export function ScenariosView() {
           )}
           <Section title="Recent">
             {scenarios.data?.length ? (
-              <div className="relative overflow-x-auto">
-                <table className="w-full min-w-[520px] text-xs">
+              <div className="relative overflow-x-auto" tabIndex={0}>
+                <table className="w-full min-w-[520px] text-xs" aria-label="Recent scenarios">
                   <thead className="text-fg-subtle">
                     <tr className="border-line-strong border-b text-left">
                       <th scope="col" className="px-2 py-1.5 font-normal">
@@ -397,7 +397,7 @@ function Result({ s, onEdit }: { s: Scenario; onEdit: () => void }) {
           <Explanations plans={[s.baseline, s.optimized]} />
 
           {s.baseline?.metrics || s.optimized?.metrics ? (
-            <div className="relative overflow-x-auto">
+            <div className="relative overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[480px] text-xs" aria-label="Baseline vs optimized">
                 <thead className="text-fg-subtle">
                   <tr className="border-line-strong border-b text-left">
@@ -502,7 +502,7 @@ const COSTS = [
 
 function CostTable({ baseline, optimized }: { baseline: Plan; optimized: Plan }) {
   return (
-    <div className="relative overflow-x-auto">
+    <div className="relative overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[480px] text-xs" aria-label="Cost components">
         <thead className="text-fg-subtle">
           <tr className="border-line-strong border-b text-left">
@@ -547,7 +547,7 @@ function PlacementDiff({ baseline, optimized }: { baseline: Plan | null; optimiz
     return { text: "—", extra: "" };
   };
   return (
-    <div className="relative overflow-x-auto">
+    <div className="relative overflow-x-auto" tabIndex={0}>
       <table className="w-full min-w-[560px] text-xs" aria-label="Job placements">
         <thead className="text-fg-subtle">
           <tr className="border-line-strong border-b text-left">

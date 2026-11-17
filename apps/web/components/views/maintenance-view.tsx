@@ -183,7 +183,7 @@ function PlanBody({
       {plan.jobs.length ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <Section title="Jobs">
-            <div className="relative overflow-x-auto">
+            <div className="relative overflow-x-auto" tabIndex={0}>
               <table className="w-full min-w-[720px] text-xs">
                 <thead className="text-fg-subtle">
                   <tr className="border-line-strong border-b text-left">
@@ -337,7 +337,7 @@ function ResourceTables({ resources }: { resources: MaintenanceResources }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Section title="Facilities">
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full text-xs">
             <thead className="text-fg-subtle">
               <tr className="border-line-strong border-b text-left">
@@ -380,7 +380,7 @@ function ResourceTables({ resources }: { resources: MaintenanceResources }) {
         </div>
       </Section>
       <Section title="Spare engines">
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full text-xs">
             <thead className="text-fg-subtle">
               <tr className="border-line-strong border-b text-left">

@@ -202,6 +202,7 @@ export function FlightsView() {
                                   ? "bg-crit"
                                   : "bg-warn"
                               }`}
+                              role="img"
                               aria-label="flagged"
                             />
                           ) : null}
