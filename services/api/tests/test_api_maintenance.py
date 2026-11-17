@@ -265,3 +265,29 @@ def test_openapi_lists_maintenance_routes(seeded_client: TestClient) -> None:
         "/api/v1/scenarios/{scenario_id}/solve",
     ):
         assert route in paths
+
+
+def test_restart_fails_orphaned_solves(seeded_client: TestClient) -> None:
+    from app import models
+    from app.main import create_app
+    from app.routers.scenarios import INTERRUPTED
+
+    created = seeded_client.post("/api/v1/scenarios", json={"assumptions": {}})
+    assert created.status_code == 201, created.text
+    sid = created.json()["id"]
+    app = seeded_client.app
+    with app.state.session_factory() as session:  # type: ignore[attr-defined]
+        row = session.get(models.Scenario, sid)
+        assert row is not None
+        row.status = "running"
+        session.commit()
+
+    # A fresh process on the same database: its startup marks the orphan failed.
+    with TestClient(create_app(app.state.settings)):  # type: ignore[attr-defined]
+        pass
+    after = _get(seeded_client, f"/api/v1/scenarios/{sid}")
+    assert after["status"] == "failed"
+    assert after["error"] == INTERRUPTED
+    # And it can simply be run again.
+    assert seeded_client.post(f"/api/v1/scenarios/{sid}/solve").status_code == 202
+    assert _get(seeded_client, f"/api/v1/scenarios/{sid}")["status"] == "solved"

@@ -207,7 +207,7 @@ export function EngineDetailView({ id }: { id: string }) {
           </Link>
         }
       >
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[640px] text-xs">
             <thead className="text-fg-subtle">
               <tr className="border-line-strong border-b text-left">

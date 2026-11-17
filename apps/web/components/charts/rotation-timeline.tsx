@@ -49,7 +49,7 @@ export function RotationTimeline({
   }
 
   return (
-    <figure aria-label="Aircraft rotations" className="relative overflow-x-auto">
+    <figure aria-label="Aircraft rotations" className="relative overflow-x-auto" tabIndex={0}>
       <div className="min-w-[720px]">
         <div className="grid grid-cols-[3.5rem_1fr] pb-1">
           <span className="text-fg-subtle text-2xs">Ship</span>

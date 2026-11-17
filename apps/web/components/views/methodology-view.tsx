@@ -77,7 +77,7 @@ function MetricsSections({ m }: { m: NonNullable<ReturnType<typeof useModelMetri
         title="Model comparison · official test split"
         aside={<span className="text-fg-subtle text-2xs font-mono">{m.model.version}</span>}
       >
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[640px] text-xs">
             <thead className="text-fg-subtle">
               <tr className="border-line-strong border-b">

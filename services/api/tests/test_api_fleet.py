@@ -223,3 +223,12 @@ def test_openapi_lists_v1_routes(seeded_client: TestClient) -> None:
         "/api/v1/airports",
         "/api/v1/models/metrics",
     } <= paths
+
+
+def test_large_responses_are_gzipped(seeded_client: TestClient) -> None:
+    r = seeded_client.get(
+        "/api/v1/flights", params={"page_size": 500}, headers={"Accept-Encoding": "gzip"}
+    )
+    assert r.status_code == 200
+    assert r.headers["content-encoding"] == "gzip"
+    assert r.json()["items"]  # TestClient decompresses transparently

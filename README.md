@@ -7,10 +7,27 @@ Engine remaining-useful-life prediction and maintenance planning for a fictional
 > maintenance resources are synthetic. This is an educational decision-support simulator, not an
 > airworthiness tool. RUL is a modelling target in cycles, not a certified maintenance limit.
 
-**Status:** Phases 0–4 complete (scaffold, ML pipeline, airline simulation + fleet API, fleet UI,
-maintenance optimizer). See [PROGRESS.md](PROGRESS.md).
-
 ![Fleet health overview](docs/screenshots/overview.png)
+
+## The problem
+
+An engine's remaining useful life (RUL) is uncertain, and taking it off-wing has a price: a hangar
+bay, a technician crew, a spare engine, and the flights the aircraft can no longer fly. AeroFleet
+connects the two halves of that decision:
+
+1. **Predict.** A gradient-boosted model trained on NASA C-MAPSS estimates each engine's RUL with a
+   calibrated 90% interval. The planner compares the *lower bound* with the cycles the engine is
+   scheduled to fly this week.
+2. **Plan.** Every engine that won't make it gets a job card. A CP-SAT model schedules those jobs
+   into bays, shifts and spare-engine stock so that the fewest flights are cancelled. It is measured
+   against a plain earliest-due-date heuristic on the same inputs.
+3. **Explain.** Each placement says why it is where it is. When a scenario cannot be satisfied, the
+   app names the minimal set of engines that conflict and the resource they compete for.
+
+Pages: fleet overview, engine list and detail (prediction history, raw sensors, provenance), flight
+schedule with rotations, maintenance calendar, scenario runner with baseline-vs-optimized
+comparison, and a methodology page with the measured model metrics.
+A guided walkthrough is in [docs/demo.md](docs/demo.md).
 
 ## Model results (NASA C-MAPSS FD001, official test split)
 
@@ -137,7 +154,56 @@ CI (`.github/workflows/ci.yml`) runs Python checks, web checks/build, Playwright
 Postgres, a Docker Compose smoke test, and an ML job that downloads the real data, re-trains, and
 fails if committed metrics are not reproduced.
 
+Accessibility: every page passes axe (WCAG 2.1 A/AA) on desktop and a phone viewport, checked in
+the Playwright suite (`e2e/a11y.spec.ts`). Latency and bundle sizes: [docs/performance.md](docs/performance.md).
+
 ## Deployment
 
-Planned for Phase 5 on free tiers only. The API image (`services/api/Dockerfile`) and web image
-(`apps/web/Dockerfile`) are independent and configured entirely through environment variables.
+Configured for free tiers and not yet deployed: Postgres on Neon, the API on a Render free web
+service (`render.yaml`, Docker), and the web app on Vercel. The hosted API only needs the
+database. You run the data download, training and seeding on your own machine against the hosted
+database. Steps, limits and post-deploy checks: [docs/deployment.md](docs/deployment.md).
+
+## Decisions and tradeoffs
+
+- **Plan on the lower bound, not the point estimate.** A 90% conformal interval is cheap to
+  calibrate and gives a planning rule people can reason about ("flag when the pessimistic case runs
+  out"). The cost is more early removals; the buffer control makes that trade visible.
+  ([ADR 0002](docs/decisions/0002-rul-model-and-intervals.md))
+- **CP-SAT over a MIP or a metaheuristic.** Scheduling with bays, shifts and discrete flight
+  cancellations is naturally a constraint model with optional intervals. CP-SAT proves optimality at
+  this size in well under a second, and its assumption literals give minimal infeasible cores for
+  free. ([ADR 0003](docs/decisions/0003-maintenance-scheduling-model.md))
+- **Hourly slots and a fixed flight schedule.** Jobs start on the hour and flights are never
+  re-timed or swapped between aircraft; a job that overruns a ground gap cancels a contiguous block
+  of legs. This is coarser than a real ops tool but keeps the model small and auditable.
+- **An independent checker.** Both plans are re-verified against every constraint by separate code,
+  so a modelling bug shows up as a failed check rather than a wrong number.
+- **Synthetic operations, real engines.** The airline, costs and resources are invented and
+  documented as assumptions ([docs/assumptions.md](docs/assumptions.md)). The engine data and model
+  metrics are real and reproducible (`make reproduce`).
+
+## Limitations
+
+- One engine per aircraft is modelled, and engines are NASA test units mapped onto fictional
+  tails. Cycles are flights, not certified life-limited-part counts.
+- FD001 only (one operating condition, one fault mode). The model is not validated on other subsets.
+- Costs are fictional units with stated weights; the optimizer is only as right as those weights.
+- One-week horizon, no re-planning as the week unfolds.
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [architecture.md](docs/architecture.md) | Components, data flow, ER diagram |
+| [model_card.md](docs/model_card.md) | Model, metrics, intervals, caveats |
+| [optimization.md](docs/optimization.md) | Scheduling model, costs, measured scenarios |
+| [assumptions.md](docs/assumptions.md) | Every synthetic assumption, numbered |
+| [api.md](docs/api.md) | Endpoints with captured example responses |
+| [data_provenance.md](docs/data_provenance.md), [data_dictionary.md](docs/data_dictionary.md) | Dataset source, terms, columns |
+| [deployment.md](docs/deployment.md), [performance.md](docs/performance.md) | Hosting and measurements |
+| [demo.md](docs/demo.md) | Walkthrough and video plan |
+| [decisions/](docs/decisions) | Architecture decision records |
+
+Screenshots are regenerated with `node apps/web/scripts/screenshots.mjs` against a running
+production build and API.

@@ -167,7 +167,7 @@ export function EnginesView() {
       ) : items.length === 0 ? (
         <Empty>No engines match these filters</Empty>
       ) : (
-        <div className="relative overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full min-w-[760px] text-xs">
             <thead>
               {table.getHeaderGroups().map((group) => (

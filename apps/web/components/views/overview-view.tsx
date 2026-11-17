@@ -44,13 +44,15 @@ export function OverviewView() {
       ) : !summary.data ? (
         <Loading label="fleet summary" className="h-9" />
       ) : (
-        <dl className="border-line flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y py-2 text-xs">
-          <Fact label="As of">{utcTime(summary.data.as_of)}</Fact>
-          <Fact label="Horizon">to {utcTime(summary.data.horizon_end)}</Fact>
-          <Fact label="Fleet">
-            {summary.data.aircraft} ships · {summary.data.flights} legs
-          </Fact>
-          <Fact label="Model">{summary.data.model.version}</Fact>
+        <div className="border-line flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y py-2 text-xs">
+          <dl className="contents">
+            <Fact label="As of">{utcTime(summary.data.as_of)}</Fact>
+            <Fact label="Horizon">to {utcTime(summary.data.horizon_end)}</Fact>
+            <Fact label="Fleet">
+              {summary.data.aircraft} ships · {summary.data.flights} legs
+            </Fact>
+            <Fact label="Model">{summary.data.model.version}</Fact>
+          </dl>
           <div className="ml-auto flex items-baseline gap-4" aria-label="Planning status counts">
             {(["critical", "review", "ok"] as const).map((s) => (
               <Link
@@ -63,7 +65,7 @@ export function OverviewView() {
               </Link>
             ))}
           </div>
-        </dl>
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">

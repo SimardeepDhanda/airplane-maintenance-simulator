@@ -97,9 +97,18 @@ const ACTIVE = new Set(["queued", "running"]);
 
 /** Polls while the scenario is solving. */
 export function useScenario(id: number | undefined) {
+  const client = useQueryClient();
   return useQuery({
     queryKey: ["scenario", id],
-    queryFn: ({ signal }) => apiGet(`/api/v1/scenarios/${id}`, scenario, {}, signal),
+    queryFn: async ({ signal }) => {
+      const before = client.getQueryData<{ status: string }>(["scenario", id])?.status;
+      const s = await apiGet(`/api/v1/scenarios/${id}`, scenario, {}, signal);
+      // The recent list shows status too; refresh it when a solve we were polling finishes.
+      if (before && ACTIVE.has(before) && !ACTIVE.has(s.status)) {
+        void client.invalidateQueries({ queryKey: ["scenarios"] });
+      }
+      return s;
+    },
     enabled: id !== undefined,
     refetchInterval: (query) => (ACTIVE.has(query.state.data?.status ?? "") ? 750 : false),
   });
