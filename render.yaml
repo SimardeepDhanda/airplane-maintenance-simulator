@@ -5,7 +5,7 @@ services:
     name: aerofleet-api
     runtime: docker
     plan: free
-    region: oregon
+    region: ohio # same AWS region as the Neon database (us-east-2)
     dockerContext: .
     dockerfilePath: ./services/api/Dockerfile
     healthCheckPath: /health
