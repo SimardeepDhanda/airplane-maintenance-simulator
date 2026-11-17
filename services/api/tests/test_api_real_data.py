@@ -63,3 +63,29 @@ def test_api_serves_trained_model_predictions_for_nasa_engines(
         assert detail["provenance"]["dataset"] == "NASA C-MAPSS"
         assert detail["provenance"]["split"] == "test"
     assert len(units) == 20  # each NASA engine used once
+
+
+def _scenario(client: TestClient, assumptions: dict[str, object]) -> dict[str, object]:
+    sid = client.post("/api/v1/scenarios", json={"assumptions": assumptions}).json()["id"]
+    assert client.post(f"/api/v1/scenarios/{sid}/solve").status_code == 202
+    result: dict[str, object] = client.get(f"/api/v1/scenarios/{sid}").json()
+    return result
+
+
+def test_planner_on_real_fleet(real_client: tuple[TestClient, Path]) -> None:
+    """Default week: every job placed and verified, optimizer no worse than the baseline.
+    The documented infeasible demo (hard threshold, one DEN bay out) names the two DEN jobs."""
+    client, _ = real_client
+    s = _scenario(client, {})
+    base, opt = s["baseline"], s["optimized"]
+    assert isinstance(base, dict) and isinstance(opt, dict)
+    assert opt["status"] == "OPTIMAL" and opt["verified"] and base["verified"]
+    assert opt["objective"] <= base["objective"]
+    assert len(opt["placements"]) == len(opt["jobs"]) > 0
+
+    hard = _scenario(client, {"threshold_policy": "hard", "bay_changes": {"DEN": -1}})
+    opt = hard["optimized"]
+    assert isinstance(opt, dict) and opt["status"] == "INFEASIBLE"
+    (explanation,) = opt["explanations"]
+    assert explanation["code"] == "resource_conflict"
+    assert "ENG-802" in explanation["message"] and "ENG-808" in explanation["message"]

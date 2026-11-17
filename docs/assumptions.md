@@ -27,6 +27,10 @@ Hypothetical assumptions the simulation relies on. Each later phase appends to t
 | O10 | A NASA engine's last observed cycle is "now" (the simulation start). | C-MAPSS has no calendar time. |
 | O11 | Planning status: `critical` if forecast legs exceed the lower bound (L − n < 0); `review` if L − n is below the buffer; else `ok`. Default buffer 10 cycles. | Spec §5 planning flags. |
 | O12 | Flight numbers identify a ship's n-th leg of the local day (`NS1000 + 10·ship + leg`), not a fixed city pair. The same number can fly different routes on different days. | Routing is generated per day; a route-keyed timetable is out of scope. |
+| O13 | Job cards: `critical` engines get a 12 h engine change (4 technicians, 1 spare engine); `review` engines get a 4 h borescope inspection (2 technicians). One monitored engine and at most one job per ship. | Simplified, illustrative work scopes. |
+| O14 | Facilities: ORD and DEN hangars (2 bays each, engine change and borescope, 06–18 local 8 technicians, 18–06 local 4); ATL line station (1 bay, borescope only, 06–22 local 3, 22–06 local 2). Spare engines: 2 at ORD, 2 at DEN, 1 more arriving at DEN 60 h after start; moving one between stations takes 18 h. | Fictional resources sized to make trade-offs visible. |
+| O15 | A job that overruns ground time cancels legs until the ship returns to the same station; no swaps or ferry flights. | Keeps location continuity with a fixed schedule (ADR 0003). |
+| O16 | Cost weights (cancelled leg 100, cycle past threshold 150, unplaced job 2,000, technician-hour 4 day / 5 night, part move 50) are fictional units. | Comparisons are only meaningful under these stated weights. |
 
 ## Modelling (Phase 1)
 

@@ -38,10 +38,17 @@ def main() -> int:
     artifact_dir = args.artifacts / latest.read_text().strip()
     config = ScheduleConfig(seed=args.seed, n_aircraft=args.aircraft, days=args.days)
 
-    engine = build_engine(get_settings())
+    settings = get_settings()
+    engine = build_engine(settings)
     try:
         with build_session_factory(engine)() as session:
-            report = seed_database(session, args.data, artifact_dir, config)
+            report = seed_database(
+                session,
+                args.data,
+                artifact_dir,
+                config,
+                planning_buffer=settings.planning_buffer_cycles,
+            )
     except (SeedError, DatasetError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -51,6 +58,7 @@ def main() -> int:
     print(f"model     {report.model_version} ({report.data_kind})")
     print(f"aircraft  {report.aircraft}   engines {report.engines}   flights {report.flights}")
     print(f"sensor rows {report.observations}   NASA FD001 test units {list(report.source_units)}")
+    print(f"maintenance job cards {report.maintenance_jobs}")
     return 0
 
 

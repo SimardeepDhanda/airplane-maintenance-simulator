@@ -6,7 +6,7 @@ Everything except `engine_observations` values and `model_versions` content is s
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 
 from sqlalchemy import (
@@ -20,6 +20,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Time,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -168,4 +169,140 @@ class Flight(Base):
         CheckConstraint("status IN ('scheduled', 'cancelled')", name="flight_status"),
         Index("ix_flights_aircraft_departure", "aircraft_id", "scheduled_departure"),
         Index("ix_flights_departure", "scheduled_departure"),
+    )
+
+
+# --- Maintenance resources and scenarios (Phase 4). All synthetic. ---
+
+
+class MaintenanceFacility(Base):
+    __tablename__ = "maintenance_facilities"
+
+    code: Mapped[str] = mapped_column(ForeignKey("airports.code"), primary_key=True)
+    name: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(16))  # hangar | line
+    supports: Mapped[list[str]] = mapped_column(ARRAY(String(32), dimensions=1))
+
+    __table_args__ = (CheckConstraint("kind IN ('hangar', 'line')", name="facility_kind"),)
+
+
+class MaintenanceBay(Base):
+    __tablename__ = "maintenance_bays"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)  # e.g. ORD-1
+    facility_code: Mapped[str] = mapped_column(
+        ForeignKey("maintenance_facilities.code", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(32))
+
+    __table_args__ = (UniqueConstraint("facility_code", "name", name="uq_bay_name"),)
+
+
+class TechnicianShift(Base):
+    """Recurring daily roster in the facility's local time. end < start wraps past midnight."""
+
+    __tablename__ = "technician_shifts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    facility_code: Mapped[str] = mapped_column(
+        ForeignKey("maintenance_facilities.code", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(16))
+    start_local: Mapped[time] = mapped_column(Time)
+    end_local: Mapped[time] = mapped_column(Time)
+    technicians: Mapped[int] = mapped_column(Integer)
+    is_night: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (
+        CheckConstraint("technicians >= 0", name="shift_technicians"),
+        UniqueConstraint("facility_code", "name", name="uq_shift_name"),
+    )
+
+
+class PartInventory(Base):
+    __tablename__ = "parts_inventory"
+
+    id: Mapped[str] = mapped_column(String(24), primary_key=True)
+    part_type: Mapped[str] = mapped_column(String(32))
+    location: Mapped[str] = mapped_column(ForeignKey("airports.code"))
+    quantity: Mapped[int] = mapped_column(Integer)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    transfer_lead_hours: Mapped[int] = mapped_column(Integer)
+
+    __table_args__ = (
+        CheckConstraint("quantity >= 0", name="part_quantity"),
+        CheckConstraint("transfer_lead_hours >= 0", name="part_lead"),
+    )
+
+
+class MaintenanceJob(Base):
+    """Open job cards for the default planning buffer, derived from planning flags at seed time."""
+
+    __tablename__ = "maintenance_jobs"
+
+    id: Mapped[str] = mapped_column(String(24), primary_key=True)  # e.g. MX-ENG-802
+    engine_id: Mapped[str] = mapped_column(ForeignKey("engines.id", ondelete="CASCADE"))
+    aircraft_id: Mapped[str] = mapped_column(ForeignKey("aircraft.id"))
+    job_type: Mapped[str] = mapped_column(String(32))
+    duration_hours: Mapped[int] = mapped_column(Integer)
+    technicians: Mapped[int] = mapped_column(Integer)
+    part_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reason: Mapped[str] = mapped_column(String(16))
+    planning_buffer: Mapped[int] = mapped_column(Integer)
+    due_flight_id: Mapped[str | None] = mapped_column(ForeignKey("flights.id"), nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="open")
+
+    __table_args__ = (
+        CheckConstraint("duration_hours > 0", name="job_duration"),
+        CheckConstraint("technicians > 0", name="job_technicians"),
+        CheckConstraint("reason IN ('critical', 'review', 'added')", name="job_reason"),
+        CheckConstraint("status IN ('open', 'closed')", name="job_status"),
+        UniqueConstraint("engine_id", name="uq_job_engine"),
+        Index("ix_jobs_due", "due_at"),
+    )
+
+
+class Scenario(Base):
+    __tablename__ = "scenarios"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(80))
+    assumptions: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), default="created")
+    error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('created', 'queued', 'running', 'solved', 'failed')",
+            name="scenario_status",
+        ),
+        Index("ix_scenarios_created", "created_at"),
+    )
+
+
+class ScenarioResult(Base):
+    """One planner's output for a scenario. Stores job inputs so results are reproducible."""
+
+    __tablename__ = "scenario_results"
+
+    scenario_id: Mapped[int] = mapped_column(
+        ForeignKey("scenarios.id", ondelete="CASCADE"), primary_key=True
+    )
+    method: Mapped[str] = mapped_column(String(16), primary_key=True)  # baseline | optimized
+    status: Mapped[str] = mapped_column(String(16))
+    objective: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    best_bound: Mapped[float | None] = mapped_column(Float, nullable=True)
+    wall_ms: Mapped[int] = mapped_column(Integer)
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint("method IN ('baseline', 'optimized')", name="result_method"),
+        CheckConstraint(
+            "status IN ('OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN', 'NO_SOLUTION')",
+            name="result_status",
+        ),
     )

@@ -23,7 +23,10 @@ from aerofleet_ml.data.cmapss import COLUMNS
 from aerofleet_ml.data.load import UNIT, load_subset
 from aerofleet_ml.inference.predictor import MANIFEST_FILE, Prediction, RulPredictor
 from app import models
+from app.services.fleet import load_snapshot
+from app.services.maintenance import derive_jobs
 from app.simulation.airline import GENERATOR_VERSION, ScheduleConfig, generate_schedule
+from app.simulation.maintenance import FACILITIES, PARTS
 
 SETTINGS = list(COLUMNS[2:5])
 SENSORS = list(COLUMNS[5:])
@@ -42,6 +45,7 @@ class SeedReport:
     flights: int
     observations: int
     source_units: tuple[int, ...]
+    maintenance_jobs: int
 
 
 def _select_units(final: dict[int, Prediction], n: int, rng: random.Random) -> list[int]:
@@ -57,6 +61,13 @@ def _select_units(final: dict[int, Prediction], n: int, rng: random.Random) -> l
 
 def _clear(session: Session) -> None:
     for table in (
+        models.ScenarioResult,
+        models.Scenario,
+        models.MaintenanceJob,
+        models.PartInventory,
+        models.TechnicianShift,
+        models.MaintenanceBay,
+        models.MaintenanceFacility,
         models.EnginePrediction,
         models.EngineObservation,
         models.Flight,
@@ -76,6 +87,7 @@ def seed_database(
     config: ScheduleConfig | None = None,
     *,
     allow_synthetic: bool = False,
+    planning_buffer: int = 10,
 ) -> SeedReport:
     cfg = config or ScheduleConfig()
     predictor = RulPredictor.load(artifact_dir)
@@ -193,6 +205,8 @@ def seed_database(
         )
         for f in schedule.flights
     )
+    session.flush()
+    jobs = _seed_maintenance(session, cfg, planning_buffer)
     session.commit()
     return SeedReport(
         model_version=predictor.model_version,
@@ -202,7 +216,66 @@ def seed_database(
         flights=len(schedule.flights),
         observations=observations,
         source_units=tuple(sorted(int(u) for u in units)),
+        maintenance_jobs=jobs,
     )
+
+
+def _seed_maintenance(session: Session, cfg: ScheduleConfig, buffer: int) -> int:
+    """Fictional facilities, bays, rosters and spares, plus job cards for the default buffer."""
+    for f in FACILITIES:
+        session.add(
+            models.MaintenanceFacility(
+                code=f.code, name=f.name, kind=f.kind, supports=list(f.supports)
+            )
+        )
+    session.flush()
+    for f in FACILITIES:
+        session.add_all(
+            models.MaintenanceBay(id=f"{f.code}-{n}", facility_code=f.code, name=f"Bay {n}")
+            for n in range(1, f.bays + 1)
+        )
+        session.add_all(
+            models.TechnicianShift(
+                facility_code=f.code,
+                name=s.name,
+                start_local=s.start,
+                end_local=s.end,
+                technicians=s.technicians,
+                is_night=s.is_night,
+            )
+            for s in f.shifts
+        )
+    session.add_all(
+        models.PartInventory(
+            id=p.id,
+            part_type=p.part_type,
+            location=p.location,
+            quantity=p.quantity,
+            available_at=cfg.start + p.available_after,
+            transfer_lead_hours=p.transfer_lead_hours,
+        )
+        for p in PARTS
+    )
+    session.flush()
+    jobs = derive_jobs(load_snapshot(session, buffer))
+    session.add_all(
+        models.MaintenanceJob(
+            id=j.id,
+            engine_id=j.engine_id,
+            aircraft_id=j.aircraft_id,
+            job_type=j.job_type,
+            duration_hours=j.duration_hours,
+            technicians=j.technicians,
+            part_type=j.part_type,
+            reason=j.reason,
+            planning_buffer=buffer,
+            due_flight_id=j.due_flight_id,
+            due_at=j.due_at,
+            status="open",
+        )
+        for j in jobs
+    )
+    return len(jobs)
 
 
 def _observations(engine_id: str, history: pd.DataFrame) -> list[models.EngineObservation]:

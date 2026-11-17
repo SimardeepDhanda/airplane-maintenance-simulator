@@ -10,7 +10,7 @@ from app import __version__
 from app.config import Settings, get_settings
 from app.db import build_engine, build_session_factory
 from app.errors import install_error_handlers
-from app.routers import engines, fleet, flights, health, reference
+from app.routers import engines, fleet, flights, health, maintenance, reference, scenarios
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -38,7 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     v1 = APIRouter(prefix="/api/v1")
-    for module in (fleet, engines, flights, reference):
+    for module in (fleet, engines, flights, maintenance, scenarios, reference):
         v1.include_router(module.router)
     app.include_router(v1)
     return app

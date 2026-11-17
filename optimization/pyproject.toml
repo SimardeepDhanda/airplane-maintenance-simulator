@@ -3,8 +3,7 @@ name = "aerofleet-opt"
 version = "0.1.0"
 description = "AeroFleet maintenance scheduling: heuristic baseline and CP-SAT optimizer."
 requires-python = ">=3.12,<3.14"
-# ortools is added in Phase 4 alongside the solver.
-dependencies = []
+dependencies = ["ortools>=9.12,<10"]
 
 [build-system]
 requires = ["hatchling"]

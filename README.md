@@ -7,8 +7,8 @@ Engine remaining-useful-life prediction and maintenance planning for a fictional
 > maintenance resources are synthetic. This is an educational decision-support simulator, not an
 > airworthiness tool. RUL is a modelling target in cycles, not a certified maintenance limit.
 
-**Status:** Phases 0–3 complete (scaffold, ML pipeline, airline simulation + fleet API, fleet UI). See
-[PROGRESS.md](PROGRESS.md). The maintenance optimizer and its pages arrive in Phase 4.
+**Status:** Phases 0–4 complete (scaffold, ML pipeline, airline simulation + fleet API, fleet UI,
+maintenance optimizer). See [PROGRESS.md](PROGRESS.md).
 
 ![Fleet health overview](docs/screenshots/overview.png)
 
@@ -26,6 +26,25 @@ Last observed cycle of each of 100 test engines; RUL in cycles. Measured by `mak
 All models trained on RUL capped at 125. 90% conformal intervals: 90.0% empirical coverage, mean width
 43.9 cycles. Engine-level splits; the test split was not used for any choice.
 Details and caveats: [docs/model_card.md](docs/model_card.md).
+
+## Maintenance optimization
+
+Schedules one job per flagged engine (engine change or borescope) over the week, against fixed
+flights, hangar bays, technician shifts and spare-engine stock. A transparent earliest-due-date
+baseline and an OR-Tools CP-SAT model share the same options and costs; every plan is re-checked by
+an independent constraint checker. Infeasible scenarios return the minimal set of conflicting jobs
+and the resources they share. Details: [docs/optimization.md](docs/optimization.md).
+
+| Scenario (real seeded fleet) | Baseline cost | Optimized cost | Cancelled legs | Status |
+|---|---|---|---|---|
+| Default week | 3,514 | 3,102 (−12%) | 23 → 19 | OPTIMAL, ~0.1 s |
+| Inbound spare +24 h | 4,214 | 3,802 (−10%) | 24 → 20 | OPTIMAL |
+| DEN bay out | 3,862 | 3,362 (−13%) | 23 → 16 | OPTIMAL |
+| Hard threshold, DEN bay out | — | — | — | INFEASIBLE: ENG-802 and ENG-808 both need the one DEN bay before 13:45Z |
+
+Costs are fictional units under stated weights (assumption O16).
+
+![Maintenance calendar](docs/screenshots/maintenance.png)
 
 ## Architecture
 

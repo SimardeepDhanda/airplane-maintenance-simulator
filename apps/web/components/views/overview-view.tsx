@@ -7,8 +7,8 @@ import { Empty, Loading, QueryError } from "@/components/feedback/query-state";
 import { StatusBadge } from "@/components/feedback/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { Section } from "@/components/layout/section";
-import { useEngines, useFleetSummary, useFlights } from "@/lib/api/queries";
-import { localTime, utcTime } from "@/lib/format";
+import { useEngines, useFleetSummary, useFlights, useMaintenancePlan } from "@/lib/api/queries";
+import { JOB_TYPE_LABEL, localTime, utcTime } from "@/lib/format";
 import { parseBuffer, useUrlState } from "@/lib/use-url-state";
 
 export function OverviewView() {
@@ -26,7 +26,11 @@ export function OverviewView() {
     departure_to: dayEnd,
     page_size: 8,
   });
-  const q = (path: string) => (bufferParam !== undefined ? `${path}?buffer=${bufferParam}` : path);
+  const q = (path: string) =>
+    bufferParam !== undefined
+      ? `${path}${path.includes("?") ? "&" : "?"}buffer=${bufferParam}`
+      : path;
+  const mx = useMaintenancePlan(bufferParam);
 
   return (
     <div className="flex flex-col gap-5">
@@ -120,6 +124,52 @@ export function OverviewView() {
                     ))}
                 </tbody>
               </table>
+            )}
+          </Section>
+
+          <Section
+            title="Next maintenance"
+            aside={
+              <Link href={q("/maintenance")} className="text-fg-subtle hover:text-fg text-2xs">
+                Calendar
+              </Link>
+            }
+          >
+            {mx.isError ? (
+              <QueryError error={mx.error} onRetry={() => void mx.refetch()} />
+            ) : !mx.data ? (
+              <Loading label="maintenance" className="h-24" />
+            ) : mx.data.placements.length === 0 && mx.data.unscheduled.length === 0 ? (
+              <Empty>No job cards</Empty>
+            ) : (
+              <ul className="flex flex-col text-xs">
+                {mx.data.placements.slice(0, 6).map((p) => (
+                  <li
+                    key={p.job_id}
+                    className="border-line flex items-baseline justify-between gap-2 border-t py-1.5"
+                  >
+                    <Link
+                      href={q(`/maintenance?job=${p.job_id}`)}
+                      className="text-accent font-mono hover:underline"
+                    >
+                      {p.engine_id ?? p.aircraft_id}
+                    </Link>
+                    <span className="text-fg-muted">
+                      {JOB_TYPE_LABEL[p.job_type]} · {p.bay}
+                    </span>
+                    <span className="font-mono">{utcTime(p.start)}</span>
+                  </li>
+                ))}
+                {mx.data.unscheduled.map((u) => (
+                  <li
+                    key={u.job_id}
+                    className="border-line flex items-baseline justify-between gap-2 border-t py-1.5"
+                  >
+                    <span className="font-mono">{u.engine_id ?? u.aircraft_id}</span>
+                    <span className="text-warn">Not placed</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </Section>
 

@@ -43,6 +43,13 @@ erDiagram
   engine_observations ||--o{ engine_predictions : "per cycle"
   model_versions ||--o{ engine_predictions : "produced by"
   simulations
+  airports ||--o| maintenance_facilities : "hangar / line"
+  maintenance_facilities ||--o{ maintenance_bays : has
+  maintenance_facilities ||--o{ technician_shifts : roster
+  airports ||--o{ parts_inventory : stocks
+  engines ||--o| maintenance_jobs : "job card"
+  flights ||--o{ maintenance_jobs : "threshold leg"
+  scenarios ||--o{ scenario_results : "baseline / optimized"
 ```
 
 - `engine_observations` hold NASA rows verbatim (3 settings + 21 sensors as arrays).
@@ -50,7 +57,18 @@ erDiagram
   (engine, cycle, model version), so every number in the API traces to a model version.
 - `model_versions` stores the artifact's manifest and measured metrics (JSONB); one is active.
 - `simulations` records the seed, horizon and generator version of the fictional schedule.
+- `maintenance_*`, `technician_shifts`, `parts_inventory` hold the fictional resources;
+  `maintenance_jobs` are the open job cards for the default buffer (derived from planning flags).
+- `scenarios` store validated assumptions; `scenario_results` store each planner's full output
+  (placements, costs, metrics, explanations, and the job inputs used) as JSONB, so a result can be
+  reproduced and compared without re-solving. No sensor data is copied into scenarios.
 - Seeding (`make seed`) deletes and rebuilds all of the above in one transaction.
+
+## Maintenance planning
+
+See [optimization.md](optimization.md) and ADR 0003. `POST /scenarios` validates and stores
+assumptions; `POST /scenarios/{id}/solve` queues the baseline and CP-SAT runs as a background task
+(202); the UI polls `GET /scenarios/{id}` until `solved` or `failed`.
 
 ## Planning flags
 

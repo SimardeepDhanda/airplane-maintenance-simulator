@@ -9,8 +9,21 @@ import { SensorMultiples } from "@/components/charts/sensor-multiples";
 import { Loading, QueryError } from "@/components/feedback/query-state";
 import { StatusBadge } from "@/components/feedback/status-badge";
 import { Section } from "@/components/layout/section";
-import { useEngine, useEngineHistory, useModelMetrics } from "@/lib/api/queries";
-import { cycles, localTime, sensorLabel, signedCycles } from "@/lib/format";
+import {
+  useEngine,
+  useEngineHistory,
+  useMaintenancePlan,
+  useModelMetrics,
+} from "@/lib/api/queries";
+import {
+  JOB_TYPE_LABEL,
+  cycles,
+  localTime,
+  sensorLabel,
+  signedCycles,
+  utcTime,
+} from "@/lib/format";
+import type { Plan } from "@/lib/api/schemas";
 import { parseBuffer, useUrlState } from "@/lib/use-url-state";
 
 const DEFAULT_SENSORS = 4;
@@ -21,6 +34,7 @@ export function EngineDetailView({ id }: { id: string }) {
   const engine = useEngine(id, bufferParam);
   const history = useEngineHistory(id);
   const metrics = useModelMetrics();
+  const mx = useMaintenancePlan(bufferParam);
   const [chosen, setChosen] = useState<string[] | null>(null);
 
   if (engine.isError) {
@@ -70,6 +84,7 @@ export function EngineDetailView({ id }: { id: string }) {
         <Metric label="R − n" value={signedCycles(e.planning.margin)} />
         <Metric label="L − n" value={signedCycles(e.planning.conservative_margin)} strong />
       </dl>
+      <MaintenanceLine plan={mx.data} engineId={e.id} bufferParam={bufferParam} />
 
       <Section
         title="Cycles remaining"
@@ -269,5 +284,37 @@ function Metric({ label, value, strong }: { label: string; value: string; strong
         {value}
       </dd>
     </div>
+  );
+}
+
+function MaintenanceLine({
+  plan,
+  engineId,
+  bufferParam,
+}: {
+  plan: Plan | undefined;
+  engineId: string;
+  bufferParam: number | undefined;
+}) {
+  if (!plan) return null;
+  const placed = plan.placements.find((p) => p.engine_id === engineId);
+  const unplaced = plan.unscheduled.find((u) => u.engine_id === engineId);
+  if (!placed && !unplaced) return null;
+  const buffer = bufferParam !== undefined ? `&buffer=${bufferParam}` : "";
+  return (
+    <p className="-mt-3 text-xs">
+      <span className="text-fg-subtle mr-2">Maintenance (baseline)</span>
+      {placed ? (
+        <Link
+          href={`/maintenance?job=${placed.job_id}${buffer}`}
+          className="text-accent hover:underline"
+        >
+          {JOB_TYPE_LABEL[placed.job_type]} · {placed.bay} · {utcTime(placed.start)}
+          {placed.cycles_over ? ` · ${placed.cycles_over} cyc past threshold` : ""}
+        </Link>
+      ) : (
+        <span className="text-warn">Not placed: {unplaced?.why}</span>
+      )}
+    </p>
   );
 }

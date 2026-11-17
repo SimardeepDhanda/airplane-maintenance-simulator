@@ -6,16 +6,18 @@ export function Select({
   options,
   onChange,
   allLabel = "All",
+  hideLabel = false,
 }: {
   label: string;
   value: string;
   options: readonly { value: string; label: string }[];
   onChange: (value: string) => void;
   allLabel?: string;
+  hideLabel?: boolean;
 }) {
   return (
     <label className="text-fg-muted flex items-center gap-2 text-xs">
-      {label}
+      {hideLabel ? <span className="sr-only">{label}</span> : label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}

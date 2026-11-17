@@ -614,3 +614,344 @@ Measured evaluation of the active model, as written by the pipeline.
   }
 }
 ```
+
+## Maintenance and scenarios
+
+Costs are fictional integer units. Times are UTC; `*_local` carry the facility's offset. See
+[optimization.md](optimization.md) for the model.
+
+| Method | Route | Notes |
+|---|---|---|
+| GET | `/api/v1/maintenance/resources` | Facilities, bays, rosters (local time), spare lots, job types |
+| GET | `/api/v1/maintenance/plan` | Baseline plan of the seeded job cards; `?buffer=` re-derives cards |
+| GET | `/api/v1/scenarios` | Recent scenarios with per-method status (`limit` ≤ 100) |
+| POST | `/api/v1/scenarios` | Validate and store assumptions (201). Does not solve |
+| POST | `/api/v1/scenarios/{id}/solve` | Queue baseline + CP-SAT (202); 409 `already_running` |
+| GET | `/api/v1/scenarios/{id}` | Assumptions, status, both plans, comparison rows |
+
+Assumptions: `buffer` (0–200), `threshold_policy` (`penalty` \| `hard`), `bay_changes`
+({facility: delta}, result ≥ 0, delta ≤ +3), `part_delay_hours` (0–168, delays inbound lots),
+`grounded_aircraft` (≤ 5), `added_jobs` (≤ 5, one job per ship), `time_limit_s` (0.5–30).
+Error codes: `unknown_facility`, `invalid_bay_change`, `unknown_aircraft`, `duplicate_aircraft`,
+`duplicate_job`, `validation_error`, `scenario_not_found`, `already_running`.
+
+`pct_change` is `null` when the baseline value is 0 or either side has no plan.
+
+`GET /api/v1/maintenance/resources` (first facility and two lots shown)
+
+```json
+{
+  "horizon_start": "2027-03-11T10:00:00Z",
+  "horizon_end": "2027-03-18T10:00:00Z",
+  "facilities": [
+    {
+      "code": "ATL",
+      "name": "ATL line",
+      "kind": "line",
+      "timezone": "America/New_York",
+      "supports": [
+        "borescope"
+      ],
+      "bays": [
+        {
+          "id": "ATL-1",
+          "name": "1"
+        }
+      ],
+      "shifts": [
+        {
+          "name": "day",
+          "start_local": "06:00:00",
+          "end_local": "22:00:00",
+          "technicians": 3,
+          "is_night": false
+        },
+        {
+          "name": "night",
+          "start_local": "22:00:00",
+          "end_local": "06:00:00",
+          "technicians": 2,
+          "is_night": true
+        }
+      ]
+    }
+  ],
+  "parts": [
+    {
+      "id": "SE-DEN",
+      "part_type": "spare_engine",
+      "location": "DEN",
+      "quantity": 2,
+      "available_at": "2027-03-11T10:00:00Z",
+      "transfer_lead_hours": 18
+    },
+    {
+      "id": "SE-DEN-INBOUND",
+      "part_type": "spare_engine",
+      "location": "DEN",
+      "quantity": 1,
+      "available_at": "2027-03-13T22:00:00Z",
+      "transfer_lead_hours": 18
+    }
+  ],
+  "job_types": [
+    {
+      "id": "engine_change",
+      "label": "Engine change",
+      "duration_hours": 12,
+      "technicians": 4,
+      "part_type": "spare_engine"
+    },
+    {
+      "id": "borescope",
+      "label": "Borescope inspection",
+      "duration_hours": 4,
+      "technicians": 2,
+      "part_type": null
+    }
+  ]
+}
+```
+
+`GET /api/v1/maintenance/plan` (one placement and job shown)
+
+```json
+{
+  "method": "baseline",
+  "status": "FEASIBLE",
+  "objective": 3514,
+  "best_bound": null,
+  "wall_ms": 1,
+  "costs": {
+    "cancellations": 2300,
+    "threshold": 150,
+    "unscheduled": 0,
+    "labor": 1064,
+    "transfers": 0,
+    "total": 3514
+  },
+  "metrics": {
+    "jobs_total": 6,
+    "jobs_scheduled": 6,
+    "jobs_unscheduled": 0,
+    "thresholds_missed": 1,
+    "cycles_over_threshold": 1,
+    "cancelled_legs": 23,
+    "grounded_legs": 0,
+    "labor_hours": 248,
+    "part_transfers": 0,
+    "bay_utilization": 0.0761904761904762
+  },
+  "placements": [
+    {
+      "job_id": "MX-ENG-801",
+      "engine_id": "ENG-801",
+      "aircraft_id": "801",
+      "job_type": "engine_change",
+      "reason": "critical",
+      "facility": "ORD",
+      "bay": "ORD-1",
+      "start": "2027-03-11T10:00:00Z",
+      "end": "2027-03-11T22:00:00Z",
+      "start_local": "2027-03-11T04:00:00-06:00",
+      "end_local": "2027-03-11T16:00:00-06:00",
+      "tz_abbr": "CST",
+      "cancelled_flights": [
+        "NS1000-20270311",
+        "NS1001-20270311",
+        "NS1002-20270311",
+        "NS1003-20270311"
+      ],
+      "cycles_over": 0,
+      "part_lot": "SE-ORD",
+      "part_from": "ORD",
+      "labor_hours": 48,
+      "why": [
+        "Cancels 4 legs (NS1000 11 Mar 12:25Z to NS1003); ship returns to ORD 12 Mar 03:30Z",
+        "Before threshold (NS1000 departs ORD 11 Mar 12:25Z)",
+        "spare_engine from ORD stock"
+      ]
+    }
+  ],
+  "unscheduled": [],
+  "explanations": [],
+  "verified": true,
+  "jobs": [
+    {
+      "id": "MX-ENG-801",
+      "engine_id": "ENG-801",
+      "aircraft_id": "801",
+      "job_type": "engine_change",
+      "reason": "critical",
+      "duration_hours": 12,
+      "technicians": 4,
+      "part_type": "spare_engine",
+      "due_flight_id": "NS1000-20270311",
+      "due_at": "2027-03-11T12:25:00Z"
+    }
+  ]
+}
+```
+
+`POST /api/v1/scenarios` → 201
+
+```json
+{
+  "id": 12,
+  "name": "DEN bay out",
+  "status": "created",
+  "assumptions": {
+    "buffer": 10,
+    "threshold_policy": "penalty",
+    "bay_changes": {
+      "DEN": -1
+    },
+    "part_delay_hours": 0,
+    "grounded_aircraft": [],
+    "added_jobs": [],
+    "time_limit_s": 10.0
+  }
+}
+```
+
+`POST /api/v1/scenarios/{id}/solve` → 202
+
+```json
+{
+  "id": 12,
+  "status": "queued"
+}
+```
+
+`GET /api/v1/scenarios/{id}` (placements and jobs elided; two comparison rows shown)
+
+```json
+{
+  "id": 12,
+  "name": "DEN bay out",
+  "status": "solved",
+  "error": null,
+  "created_at": "2026-11-17T01:50:04.413900Z",
+  "updated_at": "2026-11-17T01:50:04.696989Z",
+  "assumptions": {
+    "buffer": 10,
+    "threshold_policy": "penalty",
+    "bay_changes": {
+      "DEN": -1
+    },
+    "part_delay_hours": 0,
+    "grounded_aircraft": [],
+    "added_jobs": [],
+    "time_limit_s": 10.0
+  },
+  "baseline": {
+    "method": "baseline",
+    "status": "FEASIBLE",
+    "objective": 3862,
+    "best_bound": null,
+    "wall_ms": 1,
+    "costs": {
+      "cancellations": 2300,
+      "threshold": 450,
+      "unscheduled": 0,
+      "labor": 1112,
+      "transfers": 0,
+      "total": 3862
+    },
+    "metrics": {
+      "jobs_total": 6,
+      "jobs_scheduled": 6,
+      "jobs_unscheduled": 0,
+      "thresholds_missed": 2,
+      "cycles_over_threshold": 3,
+      "cancelled_legs": 23,
+      "grounded_legs": 0,
+      "labor_hours": 248,
+      "part_transfers": 0,
+      "bay_utilization": 0.09523809523809523
+    },
+    "verified": true,
+    "placements": "\u2026",
+    "unscheduled": [],
+    "explanations": [],
+    "jobs": "\u2026"
+  },
+  "optimized": {
+    "method": "optimized",
+    "status": "OPTIMAL",
+    "objective": 3362,
+    "best_bound": 3362.0,
+    "wall_ms": 121,
+    "costs": {
+      "cancellations": 1600,
+      "threshold": 750,
+      "unscheduled": 0,
+      "labor": 1012,
+      "transfers": 0,
+      "total": 3362
+    },
+    "metrics": {
+      "jobs_total": 6,
+      "jobs_scheduled": 6,
+      "jobs_unscheduled": 0,
+      "thresholds_missed": 2,
+      "cycles_over_threshold": 5,
+      "cancelled_legs": 16,
+      "grounded_legs": 0,
+      "labor_hours": 248,
+      "part_transfers": 0,
+      "bay_utilization": 0.09523809523809523
+    },
+    "verified": true,
+    "placements": "\u2026",
+    "unscheduled": [],
+    "explanations": [],
+    "jobs": "\u2026"
+  },
+  "comparison": [
+    {
+      "key": "cancelled_legs",
+      "label": "Cancelled legs",
+      "unit": "legs",
+      "baseline": 23.0,
+      "optimized": 16.0,
+      "delta": -7.0,
+      "pct_change": -0.30434782608695654,
+      "better": "lower"
+    },
+    {
+      "key": "total",
+      "label": "Simulated cost",
+      "unit": "units",
+      "baseline": 3862.0,
+      "optimized": 3362.0,
+      "delta": -500.0,
+      "pct_change": -0.1294665976178146,
+      "better": "lower"
+    }
+  ]
+}
+```
+
+Infeasible scenario: `optimized.explanations`
+
+```json
+[
+  {
+    "job_id": null,
+    "code": "resource_conflict",
+    "message": "Cannot all be on time: ENG-802 before NS1010 departs DEN 11 Mar 13:25Z; ENG-808 before NS1070 departs DEN 11 Mar 13:45Z. Shared: DEN (ENG-802, ENG-808): 1 bay, 4 to 8 technicians by shift | spare_engine: 2 at DEN from 11 Mar 10:00Z, 1 at DEN from 13 Mar 22:00Z, 2 at ORD from 11 Mar 10:00Z"
+  }
+]
+```
+
+Invalid assumptions → 422
+
+```json
+{
+  "error": {
+    "code": "unknown_facility",
+    "message": "No maintenance facility 'XXX'"
+  }
+}
+```

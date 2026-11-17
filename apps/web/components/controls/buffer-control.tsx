@@ -6,9 +6,13 @@ import { useState } from "react";
 export function BufferControl({
   value,
   onChange,
+  label = "Buffer",
+  className = "",
 }: {
   value: number;
   onChange: (value: number) => void;
+  label?: string;
+  className?: string;
 }) {
   const [draft, setDraft] = useState(String(value));
   const [synced, setSynced] = useState(value);
@@ -26,23 +30,25 @@ export function BufferControl({
 
   return (
     <label
-      className="text-fg-muted flex items-center gap-2 text-xs"
+      className={`text-fg-muted flex items-center gap-2 text-xs ${className}`}
       title="Hypothetical planning policy: flag when lower-bound RUL minus scheduled cycles falls below this"
     >
-      Buffer
-      <input
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={200}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && commit()}
-        className="border-line-strong bg-surface text-fg w-14 rounded-sm border px-2 py-1 text-right font-mono text-xs"
-        aria-label="Planning buffer (cycles)"
-      />
-      <span className="text-fg-subtle">cyc</span>
+      {label}
+      <span className="flex items-center gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={200}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          className="border-line-strong bg-surface text-fg w-14 rounded-sm border px-2 py-1 text-right font-mono text-xs"
+          aria-label="Planning buffer (cycles)"
+        />
+        <span className="text-fg-subtle">cyc</span>
+      </span>
     </label>
   );
 }
