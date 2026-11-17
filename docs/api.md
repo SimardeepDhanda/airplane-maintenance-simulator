@@ -238,7 +238,7 @@ Sensor series and the model's prediction at every observed cycle (each using onl
 
 `GET /api/v1/flights?flagged=true&page_size=2`
 
-Filters: `aircraft_id`, `engine_id`, `origin`, `destination`, `departure_from`/`departure_to` (UTC with offset), `flagged`. Local times carry the airport's offset and abbreviation.
+Filters: `aircraft_id`, `engine_id`, `origin`, `destination`, `departure_from`/`departure_to` (UTC with offset), `flagged`. Paginated (`page`, `page_size` ≤ 1000; the full 7-day schedule fits one page). Local times carry the airport's offset and abbreviation.
 
 ```json
 {

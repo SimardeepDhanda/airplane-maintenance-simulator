@@ -7,9 +7,10 @@ Engine remaining-useful-life prediction and maintenance planning for a fictional
 > maintenance resources are synthetic. This is an educational decision-support simulator, not an
 > airworthiness tool. RUL is a modelling target in cycles, not a certified maintenance limit.
 
-**Status:** Phases 0–2 complete (scaffold, ML pipeline, airline simulation + fleet API). See
-[PROGRESS.md](PROGRESS.md). UI pages and the maintenance optimizer arrive in Phases 3–4; app sections
-show "Not built yet" until then.
+**Status:** Phases 0–3 complete (scaffold, ML pipeline, airline simulation + fleet API, fleet UI). See
+[PROGRESS.md](PROGRESS.md). The maintenance optimizer and its pages arrive in Phase 4.
+
+![Fleet health overview](docs/screenshots/overview.png)
 
 ## Model results (NASA C-MAPSS FD001, official test split)
 
@@ -105,11 +106,11 @@ and `metrics.json` are committed. `ml/artifacts/LATEST` names the current versio
 ## Tests and checks
 
 ```bash
-make test         # pytest (synthetic fixtures); DB tests use TEST_DATABASE_URL
+make test         # pytest (synthetic fixtures; DB tests use TEST_DATABASE_URL) + vitest
 make lint         # ruff, ruff format, eslint, prettier
 make typecheck    # mypy --strict, tsc --strict
 make check        # lint + typecheck + test
-make e2e          # Playwright; starts the API and a production web build
+make e2e          # Playwright against the seeded demo (make data pipeline migrate seed first)
 uv run pytest -m "network or dataset"   # real download + pipeline reproducibility
 ```
 

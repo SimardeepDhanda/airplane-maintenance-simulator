@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { NotBuilt } from "@/components/feedback/not-built";
-import { PageHeader } from "@/components/layout/page-header";
+import { Suspense } from "react";
+import { OverviewView } from "@/components/views/overview-view";
 
 export const metadata: Metadata = { title: "Fleet health" };
 
-export default function OverviewPage() {
+export default function Page() {
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Fleet health" />
-      <NotBuilt phase={3} />
-    </div>
+    <Suspense>
+      <OverviewView />
+    </Suspense>
   );
 }

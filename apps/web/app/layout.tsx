@@ -6,7 +6,7 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
 
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { SideNav } from "@/components/layout/side-nav";
 import { StatusRail } from "@/components/layout/status-rail";
 import { Providers } from "./providers";
@@ -24,7 +24,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="flex h-dvh flex-col">
             <StatusRail />
             <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-              <SideNav />
+              <Suspense>
+                <SideNav />
+              </Suspense>
               <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">{children}</main>
             </div>
           </div>

@@ -26,6 +26,7 @@ Hypothetical assumptions the simulation relies on. Each later phase appends to t
 | O9 | Ships 801–820 are fleet numbers, not registrations. Engine `ENG-8xx` is mapped to one NASA FD001 *test* engine, chosen by seeded pick across the model's predicted-RUL range (never by ground truth). | Avoids real tail numbers; gives a realistic mix; test engines were never used to train the model. |
 | O10 | A NASA engine's last observed cycle is "now" (the simulation start). | C-MAPSS has no calendar time. |
 | O11 | Planning status: `critical` if forecast legs exceed the lower bound (L − n < 0); `review` if L − n is below the buffer; else `ok`. Default buffer 10 cycles. | Spec §5 planning flags. |
+| O12 | Flight numbers identify a ship's n-th leg of the local day (`NS1000 + 10·ship + leg`), not a fixed city pair. The same number can fly different routes on different days. | Routing is generated per day; a route-keyed timetable is out of scope. |
 
 ## Modelling (Phase 1)
 
