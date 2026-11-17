@@ -21,10 +21,12 @@ def test_upgrade_and_downgrade_round_trip(test_database_url: str) -> None:
     command.upgrade(config, "head")
     engine = create_engine(test_database_url)
     try:
-        assert "alembic_version" in inspect(engine).get_table_names()
+        tables = set(inspect(engine).get_table_names())
+        assert {"alembic_version", "aircraft", "engines", "flights", "engine_predictions"} <= tables
         command.downgrade(config, "base")
         with engine.connect() as connection:
             versions = connection.exec_driver_sql("SELECT version_num FROM alembic_version").all()
         assert versions == []
     finally:
+        command.upgrade(config, "head")  # leave the schema in place for other tests
         engine.dispose()

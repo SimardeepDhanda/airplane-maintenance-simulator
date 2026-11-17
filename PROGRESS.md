@@ -2,7 +2,55 @@
 
 ## Current phase
 
-**Phase 1 – Real ML pipeline: complete, awaiting approval.** Next: Phase 2 (fictional airline and fleet API).
+**Phase 2 – Fictional airline and fleet API: complete, awaiting approval.** Next: Phase 3 (frontend core).
+
+## Phase 2 – Fictional airline and fleet API
+
+### Completed
+
+- Schema + migration `0002`: airports, simulations, aircraft, engines, engine_observations,
+  engine_predictions, model_versions, flights (FKs, uniqueness, check constraints, time indexes,
+  single active model).
+- Deterministic schedule generator (`app/simulation/airline.py`): 6 stations, 20 ships, hub-and-spoke
+  rotations over 7 days spanning the US DST change; UTC internally, local operating hours via zoneinfo.
+- Seed (`make seed`, idempotent): maps ships to 20 NASA FD001 test engines (seeded pick across the
+  predicted-RUL range), stores their sensor histories, and writes the trained model's prediction at
+  every observed cycle with its model version. Refuses a synthetic model unless explicitly allowed.
+- Planning service: margins R − n and L − n, `ok` / `review` / `critical`, first flagged flight,
+  per-flight conservative margin and flag; buffer is a query parameter.
+- Endpoints under `/api/v1`: `fleet/summary`, `engines` (filter, sort, paginate), `engines/{id}`,
+  `engines/{id}/history`, `flights` (filters, local times with tz abbreviations), `airports`,
+  `models/metrics`. Uniform error envelope with explicit codes; 503 `not_seeded` when empty.
+- Docs: `docs/api.md` (captured responses), data model and planning in architecture, assumptions O5–O11.
+
+### Seeded demo (real data, default config)
+
+20 aircraft, 20 engines (NASA FD001 test units 15, 16, 21, 22, 24, 26, 34, 44, 46, 57, 59, 61, 62,
+64, 66, 70, 79, 86, 88, 99), 555 flights, 2,529 sensor rows. At buffer 10: 14 ok, 1 review, 5 critical.
+
+### Verification (2026-11-17)
+
+| Check | Result |
+|---|---|
+| `make check` (ruff, format, eslint, prettier, mypy strict, tsc, pytest) | 99 passed (network + dataset deselected) |
+| `pytest -m dataset` (real data: metrics reproduce; API serves trained-model predictions for all 20 NASA engines) | 2 passed |
+| `make seed` twice | identical result |
+| `alembic check` | models and migrations in sync |
+
+Tests cover: schedule determinism, no overlaps, minimum turn, location continuity, hub-and-spoke routes,
+block times, local operating hours, horizon bounds, cycles = legs, DST (Chicago shifts, Phoenix does
+not), flight-id local dates; planning margins/boundaries/first flagged flight; API summary, buffer
+monotonicity, sort/filter/pagination, predictions equal `RulPredictor.predict` on the source history,
+history equals `predict_trajectory`, local-time offsets, cumulative cycles, SQL-level overlap and
+continuity checks, error envelope codes, OpenAPI routes, seed idempotency, synthetic-model refusal,
+unseeded 503.
+
+### Known limitations
+
+- Fixed flight schedule; no cancellations or reassignment yet (Phase 4).
+- Maintenance facilities, bays, technicians, parts and jobs are Phase 4 tables.
+- One monitored engine per aircraft (real narrowbodies have two).
+- Planning is computed per request (fine for 20 engines / 555 flights; would need caching at scale).
 
 ## Phase 1 – Real ML pipeline (FD001)
 

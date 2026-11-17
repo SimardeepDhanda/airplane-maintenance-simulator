@@ -107,10 +107,20 @@ jobs:
       - if: always()
         run: docker compose --profile app down -v
 
-  # Downloads the real NASA data, re-runs the training pipeline and fails if the committed
-  # metrics in ml/artifacts are not reproduced.
+  # Downloads the real NASA data, re-trains, fails if committed metrics are not reproduced, and
+  # checks the API serves the trained model's predictions for the seeded NASA engines.
   ml-reproducibility:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aerofleet
+          POSTGRES_PASSWORD: aerofleet
+          POSTGRES_DB: aerofleet_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aerofleet" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -118,4 +128,5 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - run: uv run python scripts/download_data.py
+      - run: uv run python scripts/run_pipeline.py
       - run: uv run pytest -m "network or dataset"

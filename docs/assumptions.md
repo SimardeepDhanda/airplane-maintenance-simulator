@@ -19,6 +19,13 @@ Hypothetical assumptions the simulation relies on. Each later phase appends to t
 | O2 | One monitored engine per aircraft. Real narrowbodies have two or more. | Simplification (spec §5). |
 | O3 | One flight leg consumes one engine cycle. | Simplification; cycles are not hours or distance. |
 | O4 | The planning threshold is a user-set hypothetical policy, not a regulatory limit. | Spec §5, §6. |
+| O5 | 6 stations (real IATA codes): hubs ORD and DEN (maintenance bases), plus ATL, BOS, PHX, SEA. Hub-and-spoke routing. | Small, geographically plausible network. PHX (no DST) exercises timezone handling. |
+| O6 | Block time = 35 min + great-circle distance at 450 mph, rounded up to 5 min. | Simple, monotonic in distance. |
+| O7 | Minimum turn 45 min + 0–60 min seeded slack. Departures 06:00–21:30 local. Aircraft overnight where their day ends. | Plausible narrowbody rotations without curfew modelling. |
+| O8 | Schedule week starts 2027-03-11 10:00 UTC and spans the US DST change (2027-03-14). All aircraft start at their home hub. | Fixed date makes runs reproducible and exercises DST. |
+| O9 | Ships 801–820 are fleet numbers, not registrations. Engine `ENG-8xx` is mapped to one NASA FD001 *test* engine, chosen by seeded pick across the model's predicted-RUL range (never by ground truth). | Avoids real tail numbers; gives a realistic mix; test engines were never used to train the model. |
+| O10 | A NASA engine's last observed cycle is "now" (the simulation start). | C-MAPSS has no calendar time. |
+| O11 | Planning status: `critical` if forecast legs exceed the lower bound (L − n < 0); `review` if L − n is below the buffer; else `ok`. Default buffer 10 cycles. | Spec §5 planning flags. |
 
 ## Modelling (Phase 1)
 

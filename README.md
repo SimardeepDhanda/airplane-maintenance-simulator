@@ -7,9 +7,9 @@ Engine remaining-useful-life prediction and maintenance planning for a fictional
 > maintenance resources are synthetic. This is an educational decision-support simulator, not an
 > airworthiness tool. RUL is a modelling target in cycles, not a certified maintenance limit.
 
-**Status:** Phases 0–1 complete (scaffold, ML pipeline). See [PROGRESS.md](PROGRESS.md). Fleet data,
-API endpoints, UI pages and the optimizer arrive in later phases; app sections show "Not built yet"
-until then.
+**Status:** Phases 0–2 complete (scaffold, ML pipeline, airline simulation + fleet API). See
+[PROGRESS.md](PROGRESS.md). UI pages and the maintenance optimizer arrive in Phases 3–4; app sections
+show "Not built yet" until then.
 
 ## Model results (NASA C-MAPSS FD001, official test split)
 
@@ -46,7 +46,7 @@ flowchart LR
 | `services/api` | FastAPI service, SQLAlchemy models, Alembic migrations |
 | `ml` | Dataset acquisition, preprocessing, training, evaluation, inference (`aerofleet_ml`) |
 | `optimization` | Heuristic baseline and CP-SAT maintenance scheduler (`aerofleet_opt`) |
-| `scripts` | Thin CLIs: data download, training pipeline (seeding arrives in Phase 2) |
+| `scripts` | Thin CLIs: data download, training pipeline, demo seed |
 | `docs` | Architecture, assumptions, data provenance, decision records |
 
 Details: [docs/architecture.md](docs/architecture.md).
@@ -63,6 +63,9 @@ Details: [docs/architecture.md](docs/architecture.md).
 make setup        # uv sync, pnpm install, create .env from .env.example
 make db           # PostgreSQL 16 in Docker (also creates the aerofleet_test database)
 make migrate      # apply Alembic migrations
+make data         # NASA C-MAPSS (see Dataset)
+make pipeline     # train the model (see Training)
+make seed         # fictional fleet + NASA engines + model predictions (idempotent)
 make api          # http://localhost:8000  (OpenAPI docs at /docs)
 make web          # http://localhost:3000  (second terminal)
 ```
@@ -70,7 +73,10 @@ make web          # http://localhost:3000  (second terminal)
 All configuration is in the root `.env` (see `.env.example`); both the API and the web app read it.
 `make help` lists every target. Commands run from the repository root.
 
-Full stack in containers instead: `make up` (db + api + web), `make down` to stop.
+Full stack in containers instead: `make up` (db + api + web), then `make seed` from the host
+(it writes to the containerised Postgres on port 5432). `make down` to stop.
+
+API reference with example responses: [docs/api.md](docs/api.md).
 
 ## Dataset
 

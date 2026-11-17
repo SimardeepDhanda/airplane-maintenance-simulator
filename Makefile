@@ -4,7 +4,7 @@ export
 
 PY_SOURCES := services/api/app services/api/tests services/api/migrations ml/src ml/tests optimization scripts
 
-.PHONY: help setup db db-stop migrate api web data pipeline reproduce test e2e lint format typecheck check up down
+.PHONY: help setup db db-stop migrate api web data pipeline reproduce seed test e2e lint format typecheck check up down
 
 help:  ## List targets
 	@grep -hE '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-10s %s\n", $$1, $$2}'
@@ -37,6 +37,9 @@ pipeline:  ## Train, calibrate, evaluate and save the FD001 model (needs `make d
 
 reproduce:  ## Re-run the pipeline and compare with the committed metrics
 	uv run pytest -m dataset
+
+seed:  ## Reset and seed the demo fleet (needs `make data`, `make pipeline`, `make migrate`)
+	uv run python scripts/seed_demo.py
 
 test:  ## Python tests (needs TEST_DATABASE_URL for DB tests)
 	uv run pytest -m "not network and not dataset"

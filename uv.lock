@@ -55,6 +55,7 @@ name = "aerofleet-api"
 version = "0.1.0"
 source = { editable = "services/api" }
 dependencies = [
+    { name = "aerofleet-ml" },
     { name = "alembic" },
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
@@ -66,6 +67,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aerofleet-ml", editable = "ml" },
     { name = "alembic", specifier = ">=1.14" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
