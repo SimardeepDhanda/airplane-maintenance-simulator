@@ -55,3 +55,23 @@ export function percent(value: number, digits = 1): string {
 export function sensorLabel(name: string): string {
   return name.replace("sensor_", "S");
 }
+
+/** Like localTime, with the zone abbreviation derived for that instant (handles DST). */
+export function zonedTime(iso: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZoneName: "short",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("weekday")} ${get("hour")}:${get("minute")} ${get("timeZoneName")}`;
+}
+
+export function integer(value: number): string {
+  return Math.round(value).toLocaleString("en-US");
+}
+
+export const JOB_TYPE_LABEL = { engine_change: "Engine change", borescope: "Borescope" } as const;

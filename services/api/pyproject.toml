@@ -12,10 +12,12 @@ dependencies = [
   "psycopg[binary]>=3.2",
   "alembic>=1.14",
   "aerofleet-ml",
+  "aerofleet-opt",
 ]
 
 [tool.uv.sources]
 aerofleet-ml = { workspace = true }
+aerofleet-opt = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

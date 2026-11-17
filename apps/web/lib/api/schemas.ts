@@ -214,3 +214,189 @@ export const modelMetrics = z.object({
   split: z.object({ fit_units: z.array(z.number()), calibration_units: z.array(z.number()) }),
 });
 export type ModelMetrics = z.infer<typeof modelMetrics>;
+
+// --- Maintenance planning ---
+
+export const jobType = z.enum(["engine_change", "borescope"]);
+export type JobType = z.infer<typeof jobType>;
+export const methodStatus = z.enum(["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN", "NO_SOLUTION"]);
+export type MethodStatus = z.infer<typeof methodStatus>;
+
+export const maintenanceResources = z.object({
+  horizon_start: z.string(),
+  horizon_end: z.string(),
+  facilities: z.array(
+    z.object({
+      code: z.string(),
+      name: z.string(),
+      kind: z.enum(["hangar", "line"]),
+      timezone: z.string(),
+      supports: z.array(jobType),
+      bays: z.array(z.object({ id: z.string(), name: z.string() })),
+      shifts: z.array(
+        z.object({
+          name: z.string(),
+          start_local: z.string(),
+          end_local: z.string(),
+          technicians: z.number(),
+          is_night: z.boolean(),
+        }),
+      ),
+    }),
+  ),
+  parts: z.array(
+    z.object({
+      id: z.string(),
+      part_type: z.string(),
+      location: z.string(),
+      quantity: z.number(),
+      available_at: z.string(),
+      transfer_lead_hours: z.number(),
+    }),
+  ),
+  job_types: z.array(
+    z.object({
+      id: jobType,
+      label: z.string(),
+      duration_hours: z.number(),
+      technicians: z.number(),
+      part_type: z.string().nullable(),
+    }),
+  ),
+});
+export type MaintenanceResources = z.infer<typeof maintenanceResources>;
+
+export const job = z.object({
+  id: z.string(),
+  engine_id: z.string().nullable(),
+  aircraft_id: z.string(),
+  job_type: jobType,
+  reason: z.enum(["critical", "review", "added"]),
+  duration_hours: z.number(),
+  technicians: z.number(),
+  part_type: z.string().nullable(),
+  due_flight_id: z.string().nullable(),
+  due_at: z.string().nullable(),
+});
+export type Job = z.infer<typeof job>;
+
+export const placement = z.object({
+  job_id: z.string(),
+  engine_id: z.string().nullable(),
+  aircraft_id: z.string(),
+  job_type: jobType,
+  reason: z.string(),
+  facility: z.string(),
+  bay: z.string(),
+  start: z.string(),
+  end: z.string(),
+  start_local: z.string(),
+  end_local: z.string(),
+  tz_abbr: z.string(),
+  cancelled_flights: z.array(z.string()),
+  cycles_over: z.number(),
+  part_lot: z.string().nullable(),
+  part_from: z.string().nullable(),
+  labor_hours: z.number(),
+  why: z.array(z.string()),
+});
+export type PlacementT = z.infer<typeof placement>;
+
+export const plan = z.object({
+  method: z.enum(["baseline", "optimized"]),
+  status: methodStatus,
+  objective: z.number().nullable(),
+  best_bound: z.number().nullable(),
+  wall_ms: z.number(),
+  costs: z
+    .object({
+      cancellations: z.number(),
+      threshold: z.number(),
+      unscheduled: z.number(),
+      labor: z.number(),
+      transfers: z.number(),
+      total: z.number(),
+    })
+    .nullable(),
+  metrics: z
+    .object({
+      jobs_total: z.number(),
+      jobs_scheduled: z.number(),
+      jobs_unscheduled: z.number(),
+      thresholds_missed: z.number(),
+      cycles_over_threshold: z.number(),
+      cancelled_legs: z.number(),
+      grounded_legs: z.number(),
+      labor_hours: z.number(),
+      part_transfers: z.number(),
+      bay_utilization: z.number(),
+    })
+    .nullable(),
+  placements: z.array(placement),
+  unscheduled: z.array(
+    z.object({
+      job_id: z.string(),
+      engine_id: z.string().nullable(),
+      aircraft_id: z.string(),
+      job_type: jobType,
+      reason: z.string(),
+      cycles_over: z.number(),
+      why: z.string(),
+    }),
+  ),
+  explanations: z.array(
+    z.object({ job_id: z.string().nullable(), code: z.string(), message: z.string() }),
+  ),
+  verified: z.boolean(),
+  jobs: z.array(job),
+});
+export type Plan = z.infer<typeof plan>;
+
+export const assumptions = z.object({
+  buffer: z.number(),
+  threshold_policy: z.enum(["penalty", "hard"]),
+  bay_changes: z.record(z.string(), z.number()),
+  part_delay_hours: z.number(),
+  grounded_aircraft: z.array(z.string()),
+  added_jobs: z.array(z.object({ aircraft_id: z.string(), job_type: jobType })),
+  time_limit_s: z.number(),
+});
+export type Assumptions = z.infer<typeof assumptions>;
+
+export const scenarioStatus = z.enum(["created", "queued", "running", "solved", "failed"]);
+
+export const scenario = z.object({
+  id: z.number(),
+  name: z.string(),
+  status: scenarioStatus,
+  error: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  assumptions,
+  baseline: plan.nullable(),
+  optimized: plan.nullable(),
+  comparison: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      unit: z.string(),
+      baseline: z.number().nullable(),
+      optimized: z.number().nullable(),
+      delta: z.number().nullable(),
+      pct_change: z.number().nullable(),
+      better: z.enum(["lower", "higher"]).nullable(),
+    }),
+  ),
+});
+export type Scenario = z.infer<typeof scenario>;
+
+export const scenarioList = z.array(
+  z.object({
+    id: z.number(),
+    name: z.string(),
+    status: z.string(),
+    created_at: z.string(),
+    baseline_status: z.string().nullable(),
+    optimized_status: z.string().nullable(),
+  }),
+);

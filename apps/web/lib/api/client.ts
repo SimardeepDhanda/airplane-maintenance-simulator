@@ -32,9 +32,29 @@ export async function apiGet<T extends z.ZodType>(
   params: Record<string, QueryValue> = {},
   signal?: AbortSignal,
 ): Promise<z.infer<T>> {
+  return request(buildUrl(path, params), schema, { signal: signal ?? null });
+}
+
+export async function apiPost<T extends z.ZodType>(
+  path: string,
+  schema: T,
+  body?: unknown,
+): Promise<z.infer<T>> {
+  return request(buildUrl(path), schema, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+}
+
+async function request<T extends z.ZodType>(
+  url: string,
+  schema: T,
+  init: RequestInit,
+): Promise<z.infer<T>> {
   let response: Response;
   try {
-    response = await fetch(buildUrl(path, params), { signal: signal ?? null });
+    response = await fetch(url, init);
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
     throw new ApiError(0, "unreachable", "API unreachable");

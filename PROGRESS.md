@@ -2,7 +2,49 @@
 
 ## Current phase
 
-**Phase 3 – Frontend core: complete.** Next: Phase 4 (maintenance planner).
+**Phase 4 – Maintenance planner: complete.** Next: Phase 5 (polish and deploy prep).
+
+## Phase 4 – Maintenance planner
+
+### Completed
+
+- `aerofleet_opt`: hourly-slot placement options with leg-cancellation blocks that keep location
+  continuity; EDD baseline; OR-Tools CP-SAT (optional intervals, cumulative bays and technician
+  rosters, spare-engine lots with transfer lead times); independent constraint checker; penalty or
+  hard threshold policy; minimal infeasibility cores; computed per-placement explanations.
+- Migration `0003`: maintenance_facilities, maintenance_bays, technician_shifts, parts_inventory,
+  maintenance_jobs, scenarios, scenario_results. Seed adds resources and 6 job cards.
+- Endpoints: `maintenance/resources`, `maintenance/plan`, `scenarios` (list/create),
+  `scenarios/{id}/solve` (202, background), `scenarios/{id}` (both plans + comparison rows with
+  guarded percent change).
+- Maintenance page: plan source (open job cards or any solved scenario, baseline/optimized), bay
+  Gantt with local night-shift shading, job table, placement reasons, cancelled-leg links, resources.
+- Scenarios page: presets (including a deliberately infeasible one), buffer, threshold policy, bay
+  steppers, inbound spare delay, ground a ship, add a job, time limit; comparison, cost components,
+  per-job placement diff, explanations; recent scenarios. Overview and engine detail link to jobs.
+- Docs: `docs/optimization.md` (model, constraints, weights, measured outcomes), ADR 0003,
+  assumptions O13–O16, API examples captured from the running service.
+
+### Measured (real seeded fleet)
+
+Default week: baseline 3,514 → optimized 3,102 cost units (−12%), cancelled legs 23 → 19, OPTIMAL in
+~0.1 s. Full table in `docs/optimization.md`. Hard threshold with one DEN bay out is INFEASIBLE with
+a two-job core (ENG-802, ENG-808).
+
+### Verification (2026-11-17)
+
+| Check | Result |
+|---|---|
+| `make check` (ruff, format, mypy strict, eslint, prettier, tsc, pytest, vitest) | 180 pytest + 11 vitest passed |
+| `pytest -m dataset` (real data: metrics reproduce, API predictions, planner on real fleet) | 3 passed |
+| `pnpm e2e` against the seeded real-data API (desktop + Pixel 7) | 60 passed |
+| `alembic check` | in sync |
+
+### Known limitations
+
+- No flight reassignment or ferry flights; overrunning jobs cancel round trips (ADR 0003).
+- One job per ship; hourly resolution; illustrative cost weights.
+- Solves run in the API process as background tasks.
 
 ## Phase 3 – Frontend core
 
@@ -217,5 +259,5 @@ single root `.env`; `PROGRESS.md` replaces `IMPLEMENTATION_STATUS.md`; IBM Plex 
 1. ~~Real ML pipeline~~ Done. (FD001 parsing, group split, baselines, improved model, conformal intervals, manifest, model card, inference).
 2. ~~Fictional airline simulation + fleet API.~~ Done.
 3. ~~Frontend core.~~ Done.
-4. Maintenance planner (heuristic + CP-SAT).
+4. ~~Maintenance planner~~ Done. (heuristic + CP-SAT).
 5. Polish and deploy.

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { cycles, localTime, percent, sensorLabel, signedCycles, utcDay, utcTime } from "./format";
+import {
+  cycles,
+  localTime,
+  percent,
+  sensorLabel,
+  signedCycles,
+  utcDay,
+  utcTime,
+  zonedTime,
+} from "./format";
 
 describe("cycles", () => {
   it("drops the decimal for integers and keeps one otherwise", () => {
@@ -37,5 +46,13 @@ describe("labels", () => {
     expect(percent(0.9)).toBe("90.0%");
     expect(percent(0.775, 0)).toBe("78%");
     expect(sensorLabel("sensor_11")).toBe("S11");
+  });
+});
+
+describe("zonedTime", () => {
+  it("derives the abbreviation for the instant", () => {
+    expect(zonedTime("2027-03-13T13:00:00Z", "America/Denver")).toBe("Sat 06:00 MST");
+    expect(zonedTime("2027-03-15T13:00:00Z", "America/Denver")).toBe("Mon 07:00 MDT");
+    expect(zonedTime("2027-03-15T13:00:00Z", "America/Phoenix")).toBe("Mon 06:00 MST");
   });
 });
