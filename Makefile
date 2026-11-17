@@ -41,8 +41,9 @@ reproduce:  ## Re-run the pipeline and compare with the committed metrics
 seed:  ## Reset and seed the demo fleet (needs `make data`, `make pipeline`, `make migrate`)
 	uv run python scripts/seed_demo.py
 
-test:  ## Python tests (needs TEST_DATABASE_URL for DB tests)
+test:  ## Python tests (needs TEST_DATABASE_URL for DB tests) and web unit tests
 	uv run pytest -m "not network and not dataset"
+	pnpm test
 
 e2e:  ## Build the web app and run Playwright (starts API + web)
 	pnpm build

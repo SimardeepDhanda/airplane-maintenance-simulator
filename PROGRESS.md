@@ -2,7 +2,63 @@
 
 ## Current phase
 
-**Phase 2 – Fictional airline and fleet API: complete, awaiting approval.** Next: Phase 3 (frontend core).
+**Phase 3 – Frontend core: complete.** Next: Phase 4 (maintenance planner).
+
+## Phase 3 – Frontend core
+
+### Completed
+
+- Typed API layer: zod schemas mirroring every response, `apiGet` with `ApiError(status, code)`,
+  TanStack Query hooks. Filter, sort, selection and planning buffer live in the URL (shareable links;
+  the buffer follows navigation).
+- Overview (`/overview`): status counts, schedule-exposure chart (lower-bound RUL vs scheduled cycles,
+  sorted by L − n), engines requiring review, flagged departures in the next 24 h.
+- Engines (`/engines`): status segmented filter, station filter, sortable columns (server-side sort),
+  RUL estimate with interval range cell, row → detail.
+- Engine detail (`/engines/[id]`): headline numbers, RUL-by-cycle chart (estimate, 90% interval,
+  forward schedule consumption, buffer line), sensor small multiples with toggles, permutation
+  importance, provenance (NASA unit, eval-only true RUL), scheduled legs linking to the flight view.
+- Flights (`/flights`): ship / origin / UTC-day / flagged filters; rotation timeline (bars select legs);
+  legs table with local times and offsets per airport, conservative margin after each leg.
+- Methodology (`/methodology`): data/simulation boundary, measured model comparison, predicted-vs-true
+  scatter with intervals, error by true-RUL bin, interval calibration, test-engine trajectories.
+- Loading skeletons, empty states, API-unreachable / 5xx (with retry), 4xx (no retry) and
+  `not_seeded` (how to seed) states.
+
+### Frontend review pass (screenshots of every page at 1440 px and 390 px against the seeded API)
+
+Fixed from the review:
+- Full-horizon flights view requested 500 legs but the schedule has 555, so the last day was missing
+  from the timeline. API flight page cap raised to 1000; the UI notes truncation if it ever occurs.
+- `utcDay` produced "Thu Mar 11" instead of "Thu 11 Mar" (caught by the new unit test).
+- Engine detail overflowed to 565 px on phones: an `sr-only` span escaped its scroll container.
+- Predicted-vs-true axis showed an unrounded tick (217.48); axes now use 25-cycle ticks.
+- Leg rows were mouse-only; each now has a keyboard-operable select button.
+- Retry was offered for 404s; now only for network/5xx errors.
+- Planning buffer input no longer syncs through an effect.
+
+Screenshots: `docs/screenshots/` (real app, seeded NASA data).
+
+### Verification (2026-11-17)
+
+| Check | Result |
+|---|---|
+| `make check` (ruff, format, eslint, prettier, mypy strict, tsc, pytest, vitest) | 99 pytest + 8 vitest passed |
+| `pnpm build` | ok |
+| `pnpm e2e` against the seeded real-data API (desktop + Pixel 7) | 46 passed |
+
+E2E covers: nav and shell states; overview counts vs API; buffer change re-plans, persists in URL and
+follows navigation; invalid buffer rejected; engines status/station filters, URL persistence across
+reload, sort toggle and order; row → detail; detail chart, sensor toggles, leg link → selected,
+in-view flight row; unknown engine error; full horizon loaded; timeline bar select/deselect; flagged +
+day filters compose; keyboard leg selection; methodology metrics vs API; API-down and `not_seeded`
+states; no horizontal overflow on any data page. CI's e2e job now downloads NASA data, trains and seeds
+before running the suite.
+
+### Known limitations
+
+- Flight numbers are per ship-day sequence, not route-keyed (assumption O12).
+- Maintenance and Scenarios pages are placeholders until Phase 4.
 
 ## Phase 2 – Fictional airline and fleet API
 
@@ -158,8 +214,8 @@ single root `.env`; `PROGRESS.md` replaces `IMPLEMENTATION_STATUS.md`; IBM Plex 
 
 ## Remaining phases
 
-1. Real ML pipeline (FD001 parsing, group split, baselines, improved model, conformal intervals, manifest, model card, inference).
-2. Fictional airline simulation + fleet API.
-3. Frontend core.
+1. ~~Real ML pipeline~~ Done. (FD001 parsing, group split, baselines, improved model, conformal intervals, manifest, model card, inference).
+2. ~~Fictional airline simulation + fleet API.~~ Done.
+3. ~~Frontend core.~~ Done.
 4. Maintenance planner (heuristic + CP-SAT).
 5. Polish and deploy.

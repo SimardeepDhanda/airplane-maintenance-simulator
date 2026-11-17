@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { NAV_GROUPS, isActive } from "@/lib/navigation";
 
 export function SideNav() {
   const pathname = usePathname();
+  const buffer = useSearchParams().get("buffer");
+  // The planning buffer follows the user between sections.
+  const withBuffer = (href: string) =>
+    buffer ? `${href}?buffer=${encodeURIComponent(buffer)}` : href;
 
   return (
     <nav
@@ -25,7 +29,7 @@ export function SideNav() {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={withBuffer(item.href)}
                 aria-current={active ? "page" : undefined}
                 className={`rounded-sm px-2 py-1.5 whitespace-nowrap transition-colors md:rounded-none md:border-l-2 ${
                   active

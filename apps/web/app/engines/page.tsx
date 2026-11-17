@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { NotBuilt } from "@/components/feedback/not-built";
-import { PageHeader } from "@/components/layout/page-header";
+import { Suspense } from "react";
+import { EnginesView } from "@/components/views/engines-view";
 
 export const metadata: Metadata = { title: "Engines" };
 
-export default function EnginesPage() {
+export default function Page() {
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Engines" />
-      <NotBuilt phase={3} />
-    </div>
+    <Suspense>
+      <EnginesView />
+    </Suspense>
   );
 }

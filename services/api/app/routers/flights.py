@@ -23,7 +23,7 @@ def list_flights(
     departure_to: Annotated[datetime | None, Query(description="UTC, exclusive")] = None,
     flagged: bool | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=500)] = 100,
+    page_size: Annotated[int, Query(ge=1, le=1000)] = 100,
 ) -> Page[FlightOut]:
     for name, value in (("departure_from", departure_from), ("departure_to", departure_to)):
         if value is not None and value.tzinfo is None:
