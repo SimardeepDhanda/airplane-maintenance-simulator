@@ -31,9 +31,13 @@ Initial JS 223–347 KB gzipped per route. Details in `docs/performance.md`.
 
 ### Verification (2026-11-17)
 
-- `make check`: ruff, ruff format, ESLint, Prettier, mypy (78 files), tsc; 182 pytest passed
+- `make check`: ruff, ruff format, ESLint, Prettier, mypy (77 files), tsc; 182 pytest passed
   (4 network/dataset deselected), 11 vitest passed.
 - `pnpm e2e` against the seeded real-data demo: 74 passed (desktop + mobile), including a11y.
+- Fresh clone of `96183de` from GitHub with a new empty database: `make setup data pipeline migrate
+  seed check reproduce e2e` all succeeded. The retrained model has the same version hash
+  (`fd001-hgb-3a2ffab7`), and the results were 182 pytest, 11 vitest, 3 dataset and 74 E2E passed.
+- CI on `96183de`: python, web, e2e, docker and ml-reproducibility jobs all green.
 
 ### Known limitations
 
