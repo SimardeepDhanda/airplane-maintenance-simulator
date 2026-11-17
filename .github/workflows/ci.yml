@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1" # weekly: confirms the NASA download source still matches its checksum
+    - cron: "0 6 * * 1" # weekly: confirms the NASA source still matches and metrics reproduce
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -40,8 +40,8 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy services/api/app services/api/tests services/api/migrations ml optimization scripts
-      - run: uv run pytest -m "not network"
+      - run: uv run mypy services/api/app services/api/tests services/api/migrations ml/src ml/tests optimization scripts
+      - run: uv run pytest -m "not network and not dataset"
 
   web:
     runs-on: ubuntu-latest
@@ -107,11 +107,15 @@ jobs:
       - if: always()
         run: docker compose --profile app down -v
 
-  dataset:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  # Downloads the real NASA data, re-runs the training pipeline and fails if the committed
+  # metrics in ml/artifacts are not reproduced.
+  ml-reproducibility:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - run: uv sync --frozen
-      - run: uv run pytest -m network
+      - run: uv run python scripts/download_data.py
+      - run: uv run pytest -m "network or dataset"

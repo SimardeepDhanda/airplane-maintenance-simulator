@@ -7,8 +7,24 @@ Engine remaining-useful-life prediction and maintenance planning for a fictional
 > maintenance resources are synthetic. This is an educational decision-support simulator, not an
 > airworthiness tool. RUL is a modelling target in cycles, not a certified maintenance limit.
 
-**Status:** Phase 0 (scaffold) complete. See [PROGRESS.md](PROGRESS.md). No model, fleet data or
-optimizer exists yet; app sections show a "Not built yet" placeholder until their phase lands.
+**Status:** Phases 0–1 complete (scaffold, ML pipeline). See [PROGRESS.md](PROGRESS.md). Fleet data,
+API endpoints, UI pages and the optimizer arrive in later phases; app sections show "Not built yet"
+until then.
+
+## Model results (NASA C-MAPSS FD001, official test split)
+
+Last observed cycle of each of 100 test engines; RUL in cycles. Measured by `make pipeline`.
+
+| Model | RMSE | MAE | PHM08 score |
+|---|---|---|---|
+| Constant (mean) | 43.24 | 35.91 | 35,723 |
+| Linear on cycle | 33.52 | 27.78 | 5,820 |
+| Ridge | 16.89 | 13.68 | 470 |
+| **HistGradientBoosting** (selected) | **11.44** | **8.35** | **200** |
+
+All models trained on RUL capped at 125. 90% conformal intervals: 90.0% empirical coverage, mean width
+43.9 cycles. Engine-level splits; the test split was not used for any choice.
+Details and caveats: [docs/model_card.md](docs/model_card.md).
 
 ## Architecture
 
@@ -30,7 +46,7 @@ flowchart LR
 | `services/api` | FastAPI service, SQLAlchemy models, Alembic migrations |
 | `ml` | Dataset acquisition, preprocessing, training, evaluation, inference (`aerofleet_ml`) |
 | `optimization` | Heuristic baseline and CP-SAT maintenance scheduler (`aerofleet_opt`) |
-| `scripts` | Thin CLIs: data download (pipeline and seeding arrive in later phases) |
+| `scripts` | Thin CLIs: data download, training pipeline (seeding arrives in Phase 2) |
 | `docs` | Architecture, assumptions, data provenance, decision records |
 
 Details: [docs/architecture.md](docs/architecture.md).
@@ -68,20 +84,32 @@ Downloads NASA PCoE entry 6, *Turbofan Engine Degradation Simulation*, verifies 
 the 12 data files and readme into `data/raw/cmapss/` (gitignored), writes `SOURCE.json` with per-file
 checksums, and validates FD001. Either the distributed zip or the inner `CMAPSSData.zip` is accepted.
 Source, citation and terms: [docs/data_provenance.md](docs/data_provenance.md).
+Columns and derived fields: [docs/data_dictionary.md](docs/data_dictionary.md).
+
+## Training
+
+```bash
+make pipeline     # train, select, calibrate, evaluate, save -> ml/artifacts/<version>/
+make reproduce    # re-run and assert the committed metrics are reproduced
+```
+
+`model.joblib` is gitignored; `manifest.json` (data checksums, split, features, params, calibration)
+and `metrics.json` are committed. `ml/artifacts/LATEST` names the current version.
 
 ## Tests and checks
 
 ```bash
-make test         # pytest; DB tests use TEST_DATABASE_URL (a disposable database)
+make test         # pytest (synthetic fixtures); DB tests use TEST_DATABASE_URL
 make lint         # ruff, ruff format, eslint, prettier
 make typecheck    # mypy --strict, tsc --strict
 make check        # lint + typecheck + test
 make e2e          # Playwright; starts the API and a production web build
-uv run pytest -m network   # downloads the real dataset and checks published counts
+uv run pytest -m "network or dataset"   # real download + pipeline reproducibility
 ```
 
 CI (`.github/workflows/ci.yml`) runs Python checks, web checks/build, Playwright against a live API and
-Postgres, and a Docker Compose smoke test. A weekly job re-verifies the NASA download.
+Postgres, a Docker Compose smoke test, and an ML job that downloads the real data, re-trains, and
+fails if committed metrics are not reproduced.
 
 ## Deployment
 

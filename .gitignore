@@ -3,6 +3,7 @@ data/raw/
 data/processed/
 ml/artifacts/**/*.joblib
 ml/artifacts/**/*.pkl
+# Only small metadata (manifest.json, metrics.json, LATEST) is committed.
 
 # Python
 __pycache__/

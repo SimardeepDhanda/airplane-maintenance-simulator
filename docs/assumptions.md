@@ -19,3 +19,13 @@ Hypothetical assumptions the simulation relies on. Each later phase appends to t
 | O2 | One monitored engine per aircraft. Real narrowbodies have two or more. | Simplification (spec §5). |
 | O3 | One flight leg consumes one engine cycle. | Simplification; cycles are not hours or distance. |
 | O4 | The planning threshold is a user-set hypothetical policy, not a regulatory limit. | Spec §5, §6. |
+
+## Modelling (Phase 1)
+
+| # | Assumption | Why |
+|---|---|---|
+| M1 | Training RUL is capped at 125 cycles. | Early-life degradation is not observable from sensors; standard for C-MAPSS. Compared against uncapped in CV and test. |
+| M2 | Model selection uses CV RMSE against capped truth, fixed before training. | Planning cares about engines near end of life. Uncapped metrics are reported alongside. |
+| M3 | 20 of 100 training engines are held out for interval calibration. | Conformal calibration needs data the model never saw. |
+| M4 | Interval coverage is reported, not guaranteed. | Cycles of one engine are dependent, which breaks exchangeability. |
+| M5 | A channel with fewer than 3 distinct values among fit-engine rows is dropped. | Carries no usable signal. Rule uses fit engines only. |
