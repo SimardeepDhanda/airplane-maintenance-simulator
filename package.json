@@ -2,7 +2,9 @@
   "name": "aerofleet",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
@@ -12,5 +14,9 @@
     "format:check": "pnpm --filter web format:check",
     "test": "pnpm --filter web test",
     "e2e": "pnpm --filter web e2e"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.3",
+    "@neon/env": "^2.1.6"
   }
 }
