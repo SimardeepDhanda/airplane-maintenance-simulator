@@ -15,9 +15,9 @@ model and the seeded fleet all live in Postgres once seeding has run.
 
 ## 1. Database (Neon)
 
-1. Create a project (Postgres 16) and copy the connection string.
-2. Change the scheme for SQLAlchemy/psycopg 3:
-   `postgresql://…` becomes `postgresql+psycopg://…`. Keep `?sslmode=require`.
+1. Create a project (Postgres only) and copy the connection string from **Connect**.
+2. Use it as is. A plain `postgresql://` or `postgres://` URL is switched to the psycopg 3 driver
+   automatically. Keep `?sslmode=require`.
 
 ## 2. Seed it from your machine
 
@@ -28,7 +28,7 @@ plain environment variables do not.
 ```bash
 make setup
 make data pipeline                                    # NASA C-MAPSS download + model (local files)
-make migrate seed DATABASE_URL='postgresql+psycopg://USER:PASSWORD@HOST/DB?sslmode=require'
+make migrate seed DATABASE_URL='postgresql://USER:PASSWORD@HOST/DB?sslmode=require'
 ```
 
 `seed` resets and reloads the demo fleet, so it is safe to re-run.
