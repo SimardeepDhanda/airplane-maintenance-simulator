@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def _check_scheme(cls, value: str) -> str:
+        # Hosts such as Neon hand out plain postgres URLs; use the psycopg 3 driver for them.
+        for plain in ("postgresql://", "postgres://"):
+            if value.startswith(plain):
+                value = "postgresql+psycopg://" + value.removeprefix(plain)
         if not value.startswith(_ALLOWED_DB_SCHEMES):
             raise ValueError(f"DATABASE_URL must start with one of {_ALLOWED_DB_SCHEMES}")
         return value

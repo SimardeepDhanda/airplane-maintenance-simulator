@@ -27,3 +27,13 @@ def test_parses_comma_separated_cors_origins(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:3000, https://example.test ,")
     settings = Settings(_env_file=None)
     assert settings.cors_origins == ["http://localhost:3000", "https://example.test"]
+
+
+@pytest.mark.parametrize("scheme", ["postgresql://", "postgres://"])
+def test_plain_postgres_urls_use_psycopg(scheme: str) -> None:
+    url = f"{scheme}u:p@ep-x.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    settings = Settings(database_url=url)
+    assert settings.database_url == (
+        "postgresql+psycopg://u:p@ep-x.us-east-2.aws.neon.tech/neondb"
+        "?sslmode=require&channel_binding=require"
+    )
