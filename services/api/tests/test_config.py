@@ -37,3 +37,36 @@ def test_plain_postgres_urls_use_psycopg(scheme: str) -> None:
         "postgresql+psycopg://u:p@ep-x.us-east-2.aws.neon.tech/neondb"
         "?sslmode=require&channel_binding=require"
     )
+
+
+def test_cors_origins_drop_paths_and_trailing_slashes() -> None:
+    settings = Settings(
+        database_url=VALID_URL,
+        cors_origins="https://a.vercel.app/overview, https://b.vercel.app/,http://localhost:3000",
+    )
+    assert settings.cors_origins == [
+        "https://a.vercel.app",
+        "https://b.vercel.app",
+        "http://localhost:3000",
+    ]
+
+
+def test_cors_origin_regex_allows_preview_deployments() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    settings = Settings(
+        database_url="postgresql+psycopg://u:p@127.0.0.1:1/none",
+        db_connect_timeout_s=1,
+        cors_origins="https://site.vercel.app",
+        cors_origin_regex=r"https://site(-[a-z0-9-]+)?\.vercel\.app",
+    )
+    with TestClient(create_app(settings)) as client:
+        for origin, allowed in [
+            ("https://site.vercel.app", True),
+            ("https://site-2b7kd2itm-team.vercel.app", True),
+            ("https://evil.vercel.app", False),
+        ]:
+            r = client.get("/health", headers={"Origin": origin})
+            assert (r.headers.get("access-control-allow-origin") == origin) is allowed, origin
