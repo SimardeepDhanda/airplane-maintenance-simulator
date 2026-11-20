@@ -41,10 +41,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # The flight list is ~270 KB of JSON; gzip brings it to a few tens of KB.
     app.add_middleware(GZipMiddleware, minimum_size=1024)
-    if resolved.cors_origins:
+    if resolved.cors_origins or resolved.cors_origin_regex:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=resolved.cors_origins,
+            allow_origin_regex=resolved.cors_origin_regex,
             allow_methods=["GET", "POST"],
             allow_headers=["Content-Type"],
         )

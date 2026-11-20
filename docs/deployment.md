@@ -39,6 +39,9 @@ make migrate seed DATABASE_URL='postgresql://USER:PASSWORD@HOST/DB?sslmode=requi
 2. Set the two secret variables it asks for:
    - `DATABASE_URL`: the Neon URL from step 1.
    - `CORS_ORIGINS`: the Vercel URL, e.g. `https://aerofleet.vercel.app` (comma-separated if several).
+   - `CORS_ORIGIN_REGEX` (optional): Vercel also serves every deployment at its own address
+     (`https://<project>-<hash>-<team>.vercel.app`). To allow those, set e.g.
+     `https://aerofleet(-[a-z0-9-]+)?\.vercel\.app`.
 3. Deploy. The container runs `alembic upgrade head` and then serves on Render's `$PORT`.
    `/health` returns 503 until the database is reachable.
 
