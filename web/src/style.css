@@ -1,0 +1,54 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 15px/1.5 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: #1d2329;
+  background: #f6f5f1;
+}
+
+main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 48px; }
+h1 { margin: 0 0 4px; font-size: 26px; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+h2 small { font-weight: normal; color: #6b7178; }
+header p { margin: 0; color: #4a5056; max-width: 680px; }
+section { margin-top: 28px; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+.controls label { display: flex; align-items: center; gap: 8px; }
+.controls b { min-width: 70px; font-weight: 600; }
+.summary { margin-left: auto; color: #4a5056; }
+
+.calendar { display: grid; gap: 3px; font-size: 12px; }
+.day, .bay { color: #6b7178; align-self: center; }
+.slot { height: 34px; border-radius: 3px; background: #e9e7e1; border: 0; font: inherit; }
+.job { background: #2f6f8f; color: white; cursor: pointer; }
+.job.late { background: #c0612b; }
+.job.selected { outline: 2px solid #1d2329; outline-offset: 1px; }
+
+.split { display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e2e0da; }
+th { font-weight: 600; font-size: 13px; color: #4a5056; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: #eeece6; }
+tr.selected { background: #e1ebf0; }
+td.late, .warn { color: #b0501d; }
+
+.chart { width: 100%; height: auto; background: white; border: 1px solid #e2e0da; border-radius: 4px; }
+.chart text { font-size: 11px; fill: #6b7178; }
+.chart .grid { stroke: #eeece6; }
+.chart path, .chart .legend line { fill: none; stroke-width: 2; }
+.chart .predicted { stroke: #2f6f8f; }
+.chart .actual { stroke: #b9b5aa; stroke-dasharray: 4 3; }
+.note { color: #4a5056; margin: 6px 0 0; }
+
+footer { margin-top: 40px; font-size: 13px; color: #6b7178; }
+.loading { padding: 40px; }
+
+@media (max-width: 800px) {
+  .split { grid-template-columns: 1fr; }
+  .calendar { overflow-x: auto; }
+  .summary { margin-left: 0; }
+}
